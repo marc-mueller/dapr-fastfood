@@ -1,0 +1,101 @@
+﻿# This is a simple script to process an order in our fastfood solution. It performs the following steps:
+# Creates a new order and defines it to be inhouse
+# Adds a new orderline with french fries to the order
+# Adds a new orderline with a hamburger to the order
+# Confirms the order
+# Confirms the payment
+# Gets all active orders
+# Mocks the kitchen crew and calls the order service and finished the french fries position
+# Mocks the kitchen crew and calls the order service and finished the hamburger position
+# Gets all active orders
+# Marks the order as served
+
+# @name createOrder
+POST {{orderServiceUrl}}/createOrder
+Content-Type: application/json
+
+{
+  "inhouse": true
+}
+
+> {%
+      client.global.set("orderId", response.body.id);
+%}
+
+###
+
+# @name addOrderlineFrenchFries
+POST {{orderServiceUrl}}/addItem/{{orderId}}
+Content-Type: application/json
+
+{
+  "productId": "00000000-0000-0000-0000-000000000001",
+  "productDescription": "french fries",
+  "quantity": 1,
+  "price": 2.5
+}
+
+###
+
+# @name addOrderlineBurger
+POST {{orderServiceUrl}}/addItem/{{orderId}}
+Content-Type: application/json
+
+{
+  "productId": "00000000-0000-0000-0000-000000000002",
+  "productDescription": "hamburger",
+  "quantity": 1,
+  "price": 7.5
+}
+
+> {%
+    client.global.set("itemFrenchFriesId", response.body.items[0].id);
+    client.global.set("itemBurgerId", response.body.items[1].id);
+%}
+
+###
+
+# @name confirmOrder
+POST {{orderServiceUrl}}/confirmOrder/{{orderId}}
+Content-Type: application/json
+
+###
+
+# @name confirmPayment
+POST {{orderServiceUrl}}/confirmPayment/{{orderId}}
+Content-Type: application/json
+
+###
+
+# Wait until the kitchen started processing the order
+# Check for state procecssing
+
+# @name getOrder
+GET {{orderServiceUrl}}/{{orderId}}
+
+###
+
+# @name itemFinishedFrenchFries
+POST {{kitchenServiceUrl}}/itemfinished/{{itemFrenchFriesId}}
+Content-Type: application/json
+
+###
+
+# @name itemFinishedBurger
+POST {{kitchenServiceUrl}}/itemfinished/{{itemBurgerId}}
+Content-Type: application/json
+
+###
+
+# Wait until the kitchen finished preparing the order
+# Check for state prepared
+
+# @name getOrder
+GET {{orderServiceUrl}}/{{orderId}}
+
+###
+
+# @name serveOrder
+POST {{orderServiceUrl}}/setOrderServed/{{orderId}}
+Content-Type: application/json
+

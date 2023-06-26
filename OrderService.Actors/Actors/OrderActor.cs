@@ -1,6 +1,10 @@
 ﻿using Dapr.Actors.Runtime;
 using Dapr.Client;
-using OrderService.Common.Dtos;
+using FastFood.Common;
+using OrderService.Models.Actors;
+using OrderService.Models.Entities;
+using OrderService.Models.Helpers;
+
 
 namespace OrderPlacement.Actors;
 
@@ -14,7 +18,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
         _daprClient = daprClient;
     }
 
-    public async Task<OrderDto> CreateOrder(OrderDto order)
+    public async Task<Order> CreateOrder(Order order)
     {
         Logger.LogInformation($"New order received: {order.Id}");
         order.State = OrderState.Creating;
@@ -22,77 +26,82 @@ public class OrderActor : Actor, IOrderActor, IRemindable
 
         await RegisterReminderAsync(ReminderLostOrderDuringCreation, null, TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(30));
 
+        
         return order;
     }
 
-    public async Task<OrderDto> AssignCustomer(CustomerDto customer)
+    public async Task<Order> AssignCustomer(Customer customer)
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Creating)
         {
             order.Customer = customer;
 
             await StateManager.SetStateAsync("order", order);
 
+            
             return order;
         }
 
         throw new InvalidOperationException("Order is not in the correct state to assign a customer");
     }
 
-    public async Task<OrderDto> AssignInvoiceAddress(Address address)
+    public async Task<Order> AssignInvoiceAddress(Address address)
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Creating)
         {
-            order.Customer ??= new CustomerDto();
+            order.Customer ??= new Customer();
             order.Customer.InvoiceAddress = address;
 
             await StateManager.SetStateAsync("order", order);
 
+            
             return order;
         }
 
         throw new InvalidOperationException("Order is not in the correct state to assign an invoice address");
     }
 
-    public async Task<OrderDto> AssignDeliveryAddress(Address address)
+    public async Task<Order> AssignDeliveryAddress(Address address)
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Creating)
         {
-            order.Customer ??= new CustomerDto();
+            order.Customer ??= new Customer();
             order.Customer.DeliveryAddress = address;
 
             await StateManager.SetStateAsync("order", order);
 
+            
             return order;
         }
 
         throw new InvalidOperationException("Order is not in the correct state to assign a delivery address");
     }
 
-    public async Task<OrderDto> AddItem(OrderItem item)
+    public async Task<Order> AddItem(OrderItem item)
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Creating)
         {
-            order.Items.Add(item);
+            order.Items?.Add(item);
 
             await StateManager.SetStateAsync("order", order);
 
+            
             return order;
         }
 
         throw new InvalidOperationException("Order is not in the correct state to add an item");
     }
 
-    public async Task<OrderDto> RemoveItem(Guid itemId)
+    public async Task<Order> RemoveItem(Guid itemId)
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Creating)
         {
-            var itemToRemove = order.Items.FirstOrDefault(i => i.Id == itemId);
+            var itemToRemove = order.Items?.FirstOrDefault(i => i.Id == itemId);
             if (itemToRemove != null)
             {
                 order.Items.Remove(itemToRemove);
@@ -100,67 +109,73 @@ public class OrderActor : Actor, IOrderActor, IRemindable
 
             await StateManager.SetStateAsync("order", order);
 
+            
             return order;
         }
 
         throw new InvalidOperationException("Order is not in the correct state to remove an item");
     }
 
-    public async Task<OrderDto> ConfirmOrder()
+    public async Task<Order> ConfirmOrder()
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Creating)
         {
             order.State = OrderState.Confirmed;
 
             await StateManager.SetStateAsync("order", order);
 
+            
             return order;
         }
 
         throw new InvalidOperationException("Order is not in the correct state to confirm");
     }
 
-    public async Task<OrderDto> ConfirmPayment()
+    public async Task<Order> ConfirmPayment()
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Confirmed)
         {
             order.State = OrderState.Paid;
 
             await StateManager.SetStateAsync("order", order);
             
-            await _daprClient.PublishEventAsync("pubsub", "orderpaid", order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderPaid, order.ToDto());
+            
+            await _daprClient.InvokeMethodAsync(HttpMethod.Post, FastFoodConstants.Services.FinanceService, "api/OrderFinance/newOrder", order.ToFinanceDto());
 
             await UnregisterReminderAsync(ReminderLostOrderDuringCreation);
 
+            
             return order;
         }
 
         throw new InvalidOperationException("Order is not in the correct state to confirm payment");
     }
 
-    public async Task<OrderDto> StartProcessing()
+    public async Task<Order> StartProcessing()
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Paid)
         {
             order.State = OrderState.Processing;
 
             await StateManager.SetStateAsync("order", order);
 
+            
             return order;
         }
 
         throw new InvalidOperationException("Order is not in the correct state to start processing");
     }
 
-    public async Task<OrderDto> FinishedItem(Guid itemId)
+    public async Task<Order> FinishedItem(Guid itemId)
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Processing)
         {
-            var itemToUpdate = order.Items.FirstOrDefault(i => i.Id == itemId);
+            var itemToUpdate = order.Items?.FirstOrDefault(i => i.Id == itemId);
             if (itemToUpdate != null)
             {
                 itemToUpdate.State = OrderItemState.Finished;
@@ -174,9 +189,10 @@ public class OrderActor : Actor, IOrderActor, IRemindable
 
                 if (order.State == OrderState.Prepared)
                 {
-                    await _daprClient.PublishEventAsync("pubsub", "orderprepared", order);
+                    await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderPrepared, order.ToDto());
                 }
 
+                
                 return order;
             }
 
@@ -186,50 +202,60 @@ public class OrderActor : Actor, IOrderActor, IRemindable
         throw new InvalidOperationException("Order is not in the correct state to remove an item");
     }
 
-    public async Task<OrderDto> Served()
+    public async Task<Order> Served()
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Prepared && order.Type == OrderType.Inhouse)
         {
             order.State = OrderState.Closed;
 
             await StateManager.SetStateAsync("order", order);
             
-            await _daprClient.PublishEventAsync("pubsub", "orderclosed", order);
-
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderClosed , order.ToDto());
+            
+            await _daprClient.InvokeMethodAsync(HttpMethod.Post, FastFoodConstants.Services.FinanceService, "api/OrderFinance/closeOrder", order.Id);
+            
             return order;
         }
         throw new InvalidOperationException("Order is not in the correct state to be served");
     }
 
-    public async Task<OrderDto> StartDelivery()
+    public async Task<Order> StartDelivery()
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Prepared && order.Type == OrderType.Delivery)
         {
             order.State = OrderState.Delivering;
 
             await StateManager.SetStateAsync("order", order);
 
+            
             return order;
         }
         throw new InvalidOperationException("Order is not in the correct state to start delivery");
     }
 
-    public async Task<OrderDto> Delivered()
+    public async Task<Order> Delivered()
     {
-        var order = await StateManager.GetStateAsync<OrderDto>("order");
+        var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Delivering && order.Type == OrderType.Delivery)
         {
             order.State = OrderState.Closed;
 
             await StateManager.SetStateAsync("order", order);
             
-            await _daprClient.PublishEventAsync("pubsub", "orderclosed", order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderClosed, order.ToDto());
 
+            
             return order;
         }
         throw new InvalidOperationException("Order is not in the correct state to start delivery");
+    }
+
+    public async Task<Order> GetOrder()
+    {
+        var order = await StateManager.GetStateAsync<Order>("order");
+        return order;
     }
 
     public async Task ReceiveReminderAsync(string reminderName, byte[] state, TimeSpan dueTime, TimeSpan period)
@@ -237,7 +263,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
         if (reminderName == ReminderLostOrderDuringCreation)
         {
             await UnregisterReminderAsync(ReminderLostOrderDuringCreation);
-            var order = await StateManager.GetStateAsync<OrderDto>("order");
+            var order = await StateManager.GetStateAsync<Order>("order");
             Logger.LogInformation($"Lost order during creation {order.Id}");
             // todo: do something regarding the lost order.
         }

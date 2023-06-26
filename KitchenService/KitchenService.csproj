@@ -8,9 +8,23 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Dapr.AspNetCore" Version="1.11.0" />
+        <PackageReference Include="Dapr.Actors" Version="1.11.0" />
+        <PackageReference Include="Dapr.Actors.AspNetCore" Version="1.11.0" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.8" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    </ItemGroup>
+    
+    <ItemGroup>
       <Content Include="..\.dockerignore">
         <Link>.dockerignore</Link>
       </Content>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\FastFood.Common\FastFood.Common.csproj" />
+      <ProjectReference Include="..\KitchenService.Common\KitchenService.Common.csproj" />
+      <ProjectReference Include="..\OrderService.Common\OrderService.Common.csproj" />
     </ItemGroup>
 
 </Project>

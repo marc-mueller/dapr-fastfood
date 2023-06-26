@@ -1,6 +1,6 @@
 ﻿namespace OrderService.Common.Dtos;
 
-public enum OrderItemState
+public enum OrderItemDtoState
 {
     AwaitingPreparation,
     Finished

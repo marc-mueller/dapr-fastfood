@@ -1,4 +1,4 @@
-﻿namespace OrderService.Common.Dtos;
+﻿namespace FinanceService.Common.Dtos;
 
 public class CustomerDto
 {

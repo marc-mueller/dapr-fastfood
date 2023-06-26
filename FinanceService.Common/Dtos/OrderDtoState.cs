@@ -1,6 +1,6 @@
-﻿namespace OrderService.Common.Dtos;
+﻿namespace FinanceService.Common.Dtos;
 
-public enum OrderState
+public enum OrderDtoState
 {
     Creating,
     Confirmed,

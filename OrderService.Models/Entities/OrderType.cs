@@ -1,4 +1,4 @@
-﻿namespace OrderService.Common.Dtos;
+﻿namespace OrderService.Models.Entities;
 
 public enum OrderType
 {
