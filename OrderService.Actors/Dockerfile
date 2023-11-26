@@ -1,20 +1,24 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS base
+﻿FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["OrderService.Agents/OrderService.Agents.csproj", "OrderService.Agents/"]
-RUN dotnet restore "OrderService.Agents/OrderService.Agents.csproj"
+COPY ["OrderService.Actors/OrderService.Actors.csproj", "OrderService.Actors/"]
+COPY ["FastFood.Common/FastFood.Common.csproj", "FastFood.Common/"]
+COPY ["OrderService.Models/OrderService.Models.csproj", "OrderService.Models/"]
+COPY ["FinanceService.Common/FinanceService.Common.csproj", "FinanceService.Common/"]
+COPY ["OrderService.Common/OrderService.Common.csproj", "OrderService.Common/"]
+RUN dotnet restore "OrderService.Actors/OrderService.Actors.csproj"
 COPY . .
-WORKDIR "/src/OrderService.Agents"
-RUN dotnet build "OrderService.Agents.csproj" -c Release -o /app/build
+WORKDIR "/src/OrderService.Actors"
+RUN dotnet build "OrderService.Actors.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "OrderService.Agents.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "OrderService.Actors.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "OrderService.Agents.dll"]
+ENTRYPOINT ["dotnet", "OrderService.Actors.dll"]

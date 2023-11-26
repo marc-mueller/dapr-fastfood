@@ -1,0 +1,196 @@
+﻿version: '3.4'
+services:
+  
+  financeservice:
+    container_name: financeservice
+    image: financeservice
+    build:
+      context: .
+      dockerfile: FinanceService/Dockerfile
+    ports:
+      - "8901:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001  
+    networks:
+      - fastfoodnet
+
+  financeservice-dapr:
+    container_name: financeservice-dapr
+    image: "daprio/daprd:latest"
+    command: [ "./daprd",
+               "-app-id", "financeservice",
+               "-app-port", "8080",
+               "-placement-host-address", "placement:50005",
+               "-components-path", "/components",
+               "-config", "/config/config.yaml",
+               "-log-level", "debug" ]
+    volumes:
+      - "./dapr/components/:/components"
+      - "./dapr/config/:/config"
+    depends_on:
+      - financeservice
+      - redis
+      - placement
+      - rabbitmq
+    network_mode: "service:financeservice"
+  
+  kitchenservice:
+    container_name: kitchenservice
+    image: kitchenservice
+    build:
+      context: .
+      dockerfile: KitchenService/Dockerfile
+    ports:
+      - "8701:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+    networks:
+      - fastfoodnet
+
+  kitchenservice-dapr:
+    container_name: kitchenservice-dapr
+    image: "daprio/daprd:latest"
+    command: ["./daprd",
+              "-app-id", "kitchenservice",
+              "-app-port", "8080",
+              "-placement-host-address", "placement:50005",
+              "-components-path", "/components",
+              "-config", "/config/config.yaml",
+              "-log-level", "debug"]
+    volumes:
+      - "./dapr/components/:/components"
+      - "./dapr/config/:/config"
+    depends_on:
+      - kitchenservice
+      - redis
+      - placement
+      - rabbitmq
+    network_mode: "service:kitchenservice"
+
+  orderservice:
+    container_name: orderservice
+    image: orderservice
+    build:
+      context: .
+      dockerfile: OrderService/Dockerfile
+    ports:
+      - "8601:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+    networks:
+      - fastfoodnet
+
+  orderservice-dapr:
+    container_name: orderservice-dapr
+    image: "daprio/daprd:latest"
+    command: ["./daprd",
+              "-app-id", "orderservice",
+              "-app-port", "8080",
+              "-placement-host-address", "placement:50005",
+              "-components-path", "/components",
+              "-config", "/config/config.yaml",
+              "-log-level", "debug"]
+    volumes:
+      - "./dapr/components/:/components"
+      - "./dapr/config/:/config"
+    depends_on:
+      - orderservice
+      - redis
+      - placement
+      - rabbitmq
+    network_mode: "service:orderservice"
+
+  orderserviceactors:
+    container_name: orderserviceactors
+    image: orderserviceactors
+    build:
+      context: .
+      dockerfile: OrderService.Actors/Dockerfile
+    ports:
+      - "8651:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+    networks:
+      - fastfoodnet
+
+  orderserviceactors-dapr:
+    container_name: orderserviceactors-dapr
+    image: "daprio/daprd:latest"
+    command: ["./daprd",
+              "-app-id", "orderserviceactors",
+              "-app-port", "8080",
+              "-placement-host-address", "placement:50005",
+              "-components-path", "/components",
+              "-config", "/config/config.yaml",
+              "-log-level", "debug"]
+    volumes:
+      - "./dapr/components/:/components"
+      - "./dapr/config/:/config"
+    depends_on:
+      - orderserviceactors
+      - redis
+      - placement
+      - rabbitmq
+    network_mode: "service:orderserviceactors"
+
+  redis:
+    container_name: redis
+    image: "redis:latest"
+    ports:
+      - "6379:6379"
+    networks:
+      - fastfoodnet
+
+  placement:
+    container_name: placement
+    image: "daprio/dapr"
+    command: ["./placement"]
+    ports:
+      - "50005:50005"
+    networks:
+      - fastfoodnet
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - fastfoodnet
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      
+  zipkin:
+    container_name: zipkin
+    image: openzipkin/zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - fastfoodnet
+  
+  dapr-dashboard:
+    container_name: dapr-dashboard
+    image: "daprio/dashboard:latest"
+    command: [ "--docker-compose=true",
+               "--components-path=/home/nonroot/components",
+               "--config-path=/home/nonroot/configuration",
+               "--docker-compose-path=/home/nonroot/docker-compose.yml" ]
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./dapr/components/:/home/nonroot/components"
+      - "./dapr/config/:/home/nonroot/configuration"
+      - "./docker-compose.yml:/home/nonroot/docker-compose.yml"
+    networks:
+      - fastfoodnet
+
+networks:
+  fastfoodnet:

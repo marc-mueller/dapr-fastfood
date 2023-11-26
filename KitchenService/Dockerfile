@@ -1,11 +1,14 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS base
+﻿FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ["KitchenService/KitchenService.csproj", "KitchenService/"]
+COPY ["FastFood.Common/FastFood.Common.csproj", "FastFood.Common/"]
+COPY ["KitchenService.Common/KitchenService.Common.csproj", "KitchenService.Common/"]
+COPY ["OrderService.Common/OrderService.Common.csproj", "OrderService.Common/"]
 RUN dotnet restore "KitchenService/KitchenService.csproj"
 COPY . .
 WORKDIR "/src/KitchenService"

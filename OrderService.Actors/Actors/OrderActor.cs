@@ -85,6 +85,10 @@ public class OrderActor : Actor, IOrderActor, IRemindable
         var order = await StateManager.GetStateAsync<Order>("order");
         if (order.State == OrderState.Creating)
         {
+            if (order.Items == null || order.Items.Count == 0)
+            {
+                order.Items = new List<OrderItem>();
+            }
             order.Items?.Add(item);
 
             await StateManager.SetStateAsync("order", order);

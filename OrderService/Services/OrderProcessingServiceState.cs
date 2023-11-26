@@ -216,7 +216,7 @@ public class OrderProcessingServiceState : IOrderProcessingService
             throw new InvalidOperationException("Item not found");
         }
 
-        throw new InvalidOperationException("Order is not in the correct state to remove an item");
+        throw new InvalidOperationException("Order is not in the correct state to finish an item");
     }
 
     public async Task<Order> Served(Guid orderid)
