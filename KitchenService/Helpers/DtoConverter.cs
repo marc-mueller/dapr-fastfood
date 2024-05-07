@@ -1,4 +1,5 @@
-﻿using KitchenService.Common.Dtos;
+﻿using System.Collections.ObjectModel;
+using KitchenService.Common.Dtos;
 using KitchenService.Entities;
 
 namespace KitchenService.Helpers;
@@ -7,7 +8,7 @@ public static class DtoConverter
 {
     public static KitchenOrderDto ToDto(this KitchenOrder order)
     {
-        return new KitchenOrderDto(){ Id = order.Id,  Items = order.Items?.Select(i => i.ToDto()).ToList()};
+        return new KitchenOrderDto(){ Id = order.Id,  Items = order.Items?.Select(i => i.ToDto()).ToList() ?? new List<KitchenOrderItemDto>()};
     }
 
     public static KitchenOrderItemDto ToDto(this KitchenOrderItem item)
@@ -17,7 +18,7 @@ public static class DtoConverter
     
     public static KitchenOrder ToEntity(this KitchenOrderDto order)
     {
-        return new KitchenOrder(){ Id = order.Id, Items = order.Items?.Select(i => i.ToEntity()).ToList()};
+        return new KitchenOrder(){ Id = order.Id, Items = order.Items?.Select(i => i.ToEntity()).ToList() ?? new List<KitchenOrderItem>()};
     }
     
     public static KitchenOrderItem ToEntity(this KitchenOrderItemDto item)

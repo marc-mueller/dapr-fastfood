@@ -128,6 +128,10 @@ namespace FastFoodDelivery.System.Tests
 
             var content = await response.Content.ReadAsStringAsync();
             var order = JsonConvert.DeserializeObject<OrderDto>(content);
+            if (order is null)
+            {
+                throw new ArgumentException($"Order not found for id {orderId}");
+            }
             var orderState = order.State;
             return orderState;
         }

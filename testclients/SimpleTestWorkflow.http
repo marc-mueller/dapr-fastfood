@@ -99,3 +99,7 @@ GET {{orderServiceUrl}}/{{orderId}}
 POST {{orderServiceUrl}}/setOrderServed/{{orderId}}
 Content-Type: application/json
 
+###
+
+# secret demo
+GET {{secretServiceUrl}}/demo.sample

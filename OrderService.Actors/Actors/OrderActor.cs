@@ -106,7 +106,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
         if (order.State == OrderState.Creating)
         {
             var itemToRemove = order.Items?.FirstOrDefault(i => i.Id == itemId);
-            if (itemToRemove != null)
+            if (itemToRemove != null && order.Items != null)
             {
                 order.Items.Remove(itemToRemove);
             }
@@ -184,7 +184,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             {
                 itemToUpdate.State = OrderItemState.Finished;
                 
-                if(order.Items.All(i => i.State == OrderItemState.Finished))
+                if(order.Items != null && order.Items.All(i => i.State == OrderItemState.Finished))
                 {
                     order.State = OrderState.Prepared;
                 }

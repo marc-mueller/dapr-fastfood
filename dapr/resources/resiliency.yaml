@@ -1,0 +1,26 @@
+﻿apiVersion: dapr.io/v1alpha1
+kind: Resiliency
+metadata:
+  name: demoresiliency
+scopes:
+  - orderservice
+
+spec:
+  policies:
+    retries:
+      retryForever:
+        policy: constant
+        maxInterval: 5s
+        maxRetries: -1
+    
+    circuitBreakers:
+      simpleCB:
+        maxRequests: 1
+        timeout: 5s
+        trip: consecutiveFailures >= 5
+
+  targets:
+    apps:
+      orderservice:
+        retry: retryForever
+        circuitBreaker: simpleCB

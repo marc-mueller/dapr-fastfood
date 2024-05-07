@@ -16,7 +16,7 @@ public class SecretDemoController : ControllerBase
     }
     
     [HttpGet("{key}")]
-    public async Task<ActionResult<string>> GetOrder(string key)
+    public async Task<ActionResult<string>> GetSecret(string key)
     {
         var secrets = await _daprClient.GetSecretAsync(FastFoodConstants.SecretStore, key);
         return Ok(secrets.Values.FirstOrDefault());

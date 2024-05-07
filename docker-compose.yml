@@ -17,22 +17,26 @@ services:
 
   financeservice-dapr:
     container_name: financeservice-dapr
-    image: "daprio/daprd:latest"
+    image: "daprio/daprd:1.13.1"
     command: [ "./daprd",
                "-app-id", "financeservice",
                "-app-port", "8080",
                "-placement-host-address", "placement:50005",
-               "-components-path", "/components",
+               "-resources-path", "/resources",
                "-config", "/config/config.yaml",
-               "-log-level", "debug" ]
+               "-log-level", "info" ]
     volumes:
-      - "./dapr/components/:/components"
+      - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
     depends_on:
-      - financeservice
-      - redis
-      - placement
-      - rabbitmq
+      financeservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     network_mode: "service:financeservice"
   
   kitchenservice:
@@ -51,22 +55,26 @@ services:
 
   kitchenservice-dapr:
     container_name: kitchenservice-dapr
-    image: "daprio/daprd:latest"
+    image: "daprio/daprd:1.13.1"
     command: ["./daprd",
               "-app-id", "kitchenservice",
               "-app-port", "8080",
               "-placement-host-address", "placement:50005",
-              "-components-path", "/components",
+              "-resources-path", "/resources",
               "-config", "/config/config.yaml",
-              "-log-level", "debug"]
+              "-log-level", "info"]
     volumes:
-      - "./dapr/components/:/components"
+      - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
     depends_on:
-      - kitchenservice
-      - redis
-      - placement
-      - rabbitmq
+      kitchenservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     network_mode: "service:kitchenservice"
 
   orderservice:
@@ -85,22 +93,26 @@ services:
 
   orderservice-dapr:
     container_name: orderservice-dapr
-    image: "daprio/daprd:latest"
+    image: "daprio/daprd:1.13.1"
     command: ["./daprd",
               "-app-id", "orderservice",
               "-app-port", "8080",
               "-placement-host-address", "placement:50005",
-              "-components-path", "/components",
+              "-resources-path", "/resources",
               "-config", "/config/config.yaml",
-              "-log-level", "debug"]
+              "-log-level", "info"]
     volumes:
-      - "./dapr/components/:/components"
+      - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
     depends_on:
-      - orderservice
-      - redis
-      - placement
-      - rabbitmq
+      orderservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     network_mode: "service:orderservice"
 
   orderserviceactors:
@@ -119,27 +131,31 @@ services:
 
   orderserviceactors-dapr:
     container_name: orderserviceactors-dapr
-    image: "daprio/daprd:latest"
+    image: "daprio/daprd:1.13.1"
     command: ["./daprd",
               "-app-id", "orderserviceactors",
               "-app-port", "8080",
               "-placement-host-address", "placement:50005",
-              "-components-path", "/components",
+              "-resources-path", "/resources",
               "-config", "/config/config.yaml",
-              "-log-level", "debug"]
+              "-log-level", "info"]
     volumes:
-      - "./dapr/components/:/components"
+      - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
     depends_on:
-      - orderserviceactors
-      - redis
-      - placement
-      - rabbitmq
+      orderserviceactors:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     network_mode: "service:orderserviceactors"
 
   redis:
     container_name: redis
-    image: "redis:latest"
+    image: "redis:7.2.4"
     ports:
       - "6379:6379"
     networks:
@@ -147,7 +163,7 @@ services:
 
   placement:
     container_name: placement
-    image: "daprio/dapr"
+    image: "daprio/dapr:1.13.1"
     command: ["./placement"]
     ports:
       - "50005:50005"
@@ -163,14 +179,14 @@ services:
     networks:
       - fastfoodnet
     healthcheck:
-      test: [ "CMD", "rabbitmqctl", "status" ]
+      test: rabbitmq-diagnostics check_port_connectivity
       interval: 30s
       timeout: 10s
       retries: 5
       
   zipkin:
     container_name: zipkin
-    image: openzipkin/zipkin
+    image: openzipkin/zipkin:3.3.0
     ports:
       - "9411:9411"
     networks:
@@ -178,15 +194,15 @@ services:
   
   dapr-dashboard:
     container_name: dapr-dashboard
-    image: "daprio/dashboard:latest"
-    command: [ "--docker-compose=true",
-               "--components-path=/home/nonroot/components",
-               "--config-path=/home/nonroot/configuration",
-               "--docker-compose-path=/home/nonroot/docker-compose.yml" ]
+    image: "daprio/dashboard:0.14.0"
+    command: [ "-docker-compose=true",
+               "-components-path=/home/nonroot/components",
+               "-config-path=/home/nonroot/configuration",
+               "-docker-compose-path=/home/nonroot/docker-compose.yml" ]
     ports:
       - "8080:8080"
     volumes:
-      - "./dapr/components/:/home/nonroot/components"
+      - "./dapr/resources/:/home/nonroot/components"
       - "./dapr/config/:/home/nonroot/configuration"
       - "./docker-compose.yml:/home/nonroot/docker-compose.yml"
     networks:
