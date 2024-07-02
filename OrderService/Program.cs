@@ -12,7 +12,7 @@ builder.Services.AddDaprClient(builder => builder
     .UseHttpEndpoint($"http://localhost:{daprHttpPort}")
     .UseGrpcEndpoint($"http://localhost:{daprGrpcPort}"));
 
-var useActors = false;
+var useActors = true;
 if (useActors)
 {
     builder.Services.AddSingleton<IOrderProcessingService, OrderProcessingServiceActor>();

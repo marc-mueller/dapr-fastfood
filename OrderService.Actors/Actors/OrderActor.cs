@@ -174,6 +174,8 @@ public class OrderActor : Actor, IOrderActor, IRemindable
         throw new InvalidOperationException("Order is not in the correct state to start processing");
     }
 
+    // ...
+    
     public async Task<Order> FinishedItem(Guid itemId)
     {
         var order = await StateManager.GetStateAsync<Order>("order");
@@ -205,6 +207,8 @@ public class OrderActor : Actor, IOrderActor, IRemindable
 
         throw new InvalidOperationException("Order is not in the correct state to remove an item");
     }
+    
+    // ...
 
     public async Task<Order> Served()
     {

@@ -1,9 +1,9 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:8.0.4 AS base
+﻿FROM mcr.microsoft.com/dotnet/aspnet:8.0.6 AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0.204 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0.302 AS build
 WORKDIR /src
 COPY ["FinanceService/FinanceService.csproj", "FinanceService/"]
 COPY ["FinanceService.Common/FinanceService.Common.csproj", "FinanceService.Common/"]

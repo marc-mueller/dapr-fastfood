@@ -24,3 +24,9 @@ spec:
       orderservice:
         retry: retryForever
         circuitBreaker: simpleCB
+        
+    components:
+      statestore:
+        outbound:
+          retry: retryForever
+          circuitBreaker: simpleCB
