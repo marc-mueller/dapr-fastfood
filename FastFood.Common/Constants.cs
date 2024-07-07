@@ -13,6 +13,9 @@ public static class FastFoodConstants
         public const string KitchenOrderStartProcessing = "kitchenorderstartprocessing";
         public const string OrderPrepared = "orderprepared";
         public const string OrderClosed = "orderclosed";
+        public const string DeadLetterOrderPaid = "deadletter_orderpaid";
+        public const string DeadLetterKitchenOrderStartProcessing = "deadletter_kitchenorderstartprocessing";
+        public const string DeadLetterKitchenItemFinished = "deadletter_kitchenitemfinished";
     }
 
     public static class Services
