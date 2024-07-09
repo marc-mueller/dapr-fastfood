@@ -25,10 +25,13 @@ services:
                "-resources-path", "/resources",
                "-config", "/config/config.yaml",
                "-sentry-address", "sentry:50001",
-               "-log-level", "info" ]
+               "-log-level", "info",
+               "-enable-mtls"]
     volumes:
       - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
+    env_file:
+      - ./dapr/certs/mtls.env
     depends_on:
       financeservice:
         condition: service_started
@@ -64,10 +67,13 @@ services:
               "-resources-path", "/resources",
               "-config", "/config/config.yaml",
               "-sentry-address", "sentry:50001",
-              "-log-level", "info"]
+              "-log-level", "info",
+              "-enable-mtls"]
     volumes:
       - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
+    env_file:
+      - ./dapr/certs/mtls.env
     depends_on:
       kitchenservice:
         condition: service_started
@@ -103,10 +109,13 @@ services:
               "-resources-path", "/resources",
               "-config", "/config/config.yaml",
               "-sentry-address", "sentry:50001",
-              "-log-level", "info"]
+              "-log-level", "info",
+              "-enable-mtls"]
     volumes:
       - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
+    env_file:
+      - ./dapr/certs/mtls.env
     depends_on:
       orderservice:
         condition: service_started
@@ -142,10 +151,13 @@ services:
               "-resources-path", "/resources",
               "-config", "/config/config.yaml",
               "-sentry-address", "sentry:50001",
-              "-log-level", "info"]
+              "-log-level", "info",
+              "-enable-mtls"]
     volumes:
       - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
+    env_file:
+      - ./dapr/certs/mtls.env
     depends_on:
       orderserviceactors:
         condition: service_started
@@ -168,9 +180,13 @@ services:
   placement:
     container_name: placement
     image: "daprio/dapr:1.13.1"
-    command: ["./placement"]
+    command: ["./placement",
+              "-sentry-address", "sentry:50001",
+              "-tls-enabled"]
     ports:
       - "50005:50005"
+    volumes:
+      - "./dapr/certs/:/var/run/secrets/dapr.io/tls"
     networks:
       - fastfoodnet
         
@@ -188,6 +204,8 @@ services:
       - "./dapr/config/:/config"
     ports:
       - "8082:8080"
+    networks:
+      - fastfoodnet
 
   rabbitmq:
     container_name: rabbitmq
@@ -199,8 +217,8 @@ services:
       - fastfoodnet
     healthcheck:
       test: rabbitmq-diagnostics check_port_connectivity
-      interval: 30s
-      timeout: 10s
+      interval: 5s
+      timeout: 5s
       retries: 5
       
   zipkin:
