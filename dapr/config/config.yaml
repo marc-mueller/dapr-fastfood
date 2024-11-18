@@ -6,6 +6,8 @@ metadata:
 spec:
   mtls:
     enabled: true
+    workloadCertTTL: "24h"
+    allowedClockSkew: "15m"
   tracing:
     samplingRate: "1"
     zipkin:

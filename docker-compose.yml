@@ -1,5 +1,4 @@
-﻿version: '3.4'
-services:
+﻿services:
   
   financeservice:
     container_name: financeservice
@@ -17,16 +16,17 @@ services:
 
   financeservice-dapr:
     container_name: financeservice-dapr
-    image: "daprio/daprd:1.13.1"
+    image: "daprio/daprd:1.14.4"
     command: [ "./daprd",
-               "-app-id", "financeservice",
-               "-app-port", "8080",
-               "-placement-host-address", "placement:50005",
-               "-resources-path", "/resources",
-               "-config", "/config/config.yaml",
-               "-sentry-address", "sentry:50001",
-               "-log-level", "info",
-               "-enable-mtls"]
+               "--app-id", "financeservice",
+               "--app-port", "8080",
+               "--placement-host-address", "placement:50005",
+               "--resources-path", "/resources",
+               "--config", "/config/config.yaml",
+               "--sentry-address", "sentry:50001",
+               "--log-level", "info",
+               "--control-plane-trust-domain", "cluster.local",
+               "--enable-mtls"]
     volumes:
       - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
@@ -38,6 +38,8 @@ services:
       redis:
         condition: service_started
       placement:
+        condition: service_started
+      scheduler:
         condition: service_started
       rabbitmq:
         condition: service_healthy
@@ -59,16 +61,17 @@ services:
 
   kitchenservice-dapr:
     container_name: kitchenservice-dapr
-    image: "daprio/daprd:1.13.1"
+    image: "daprio/daprd:1.14.4"
     command: ["./daprd",
-              "-app-id", "kitchenservice",
-              "-app-port", "8080",
-              "-placement-host-address", "placement:50005",
-              "-resources-path", "/resources",
-              "-config", "/config/config.yaml",
-              "-sentry-address", "sentry:50001",
-              "-log-level", "info",
-              "-enable-mtls"]
+              "--app-id", "kitchenservice",
+              "--app-port", "8080",
+              "--placement-host-address", "placement:50005",
+              "--resources-path", "/resources",
+              "--config", "/config/config.yaml",
+              "--sentry-address", "sentry:50001",
+              "--log-level", "info",
+              "--control-plane-trust-domain", "cluster.local",
+              "--enable-mtls"]
     volumes:
       - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
@@ -80,6 +83,8 @@ services:
       redis:
         condition: service_started
       placement:
+        condition: service_started
+      scheduler:
         condition: service_started
       rabbitmq:
         condition: service_healthy
@@ -101,16 +106,17 @@ services:
 
   orderservice-dapr:
     container_name: orderservice-dapr
-    image: "daprio/daprd:1.13.1"
+    image: "daprio/daprd:1.14.4"
     command: ["./daprd",
-              "-app-id", "orderservice",
-              "-app-port", "8080",
-              "-placement-host-address", "placement:50005",
-              "-resources-path", "/resources",
-              "-config", "/config/config.yaml",
-              "-sentry-address", "sentry:50001",
-              "-log-level", "info",
-              "-enable-mtls"]
+              "--app-id", "orderservice",
+              "--app-port", "8080",
+              "--placement-host-address", "placement:50005",
+              "--resources-path", "/resources",
+              "--config", "/config/config.yaml",
+              "--sentry-address", "sentry:50001",
+              "--log-level", "info",
+              "--control-plane-trust-domain", "cluster.local",
+              "--enable-mtls"]
     volumes:
       - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
@@ -122,6 +128,8 @@ services:
       redis:
         condition: service_started
       placement:
+        condition: service_started
+      scheduler:
         condition: service_started
       rabbitmq:
         condition: service_healthy
@@ -143,16 +151,17 @@ services:
 
   orderserviceactors-dapr:
     container_name: orderserviceactors-dapr
-    image: "daprio/daprd:1.13.1"
+    image: "daprio/daprd:1.14.4"
     command: ["./daprd",
-              "-app-id", "orderserviceactors",
-              "-app-port", "8080",
-              "-placement-host-address", "placement:50005",
-              "-resources-path", "/resources",
-              "-config", "/config/config.yaml",
-              "-sentry-address", "sentry:50001",
-              "-log-level", "info",
-              "-enable-mtls"]
+              "--app-id", "orderserviceactors",
+              "--app-port", "8080",
+              "--placement-host-address", "placement:50005",
+              "--resources-path", "/resources",
+              "--config", "/config/config.yaml",
+              "--sentry-address", "sentry:50001",
+              "--log-level", "info",
+              "--control-plane-trust-domain", "cluster.local",
+              "--enable-mtls"]
     volumes:
       - "./dapr/resources/:/resources"
       - "./dapr/config/:/config"
@@ -164,6 +173,8 @@ services:
       redis:
         condition: service_started
       placement:
+        condition: service_started
+      scheduler:
         condition: service_started
       rabbitmq:
         condition: service_healthy
@@ -179,25 +190,38 @@ services:
 
   placement:
     container_name: placement
-    image: "daprio/dapr:1.13.1"
+    image: "daprio/dapr:1.14.4"
     command: ["./placement",
-              "-sentry-address", "sentry:50001",
-              "-tls-enabled"]
+              "--sentry-address", "sentry:50001",
+              "--tls-enabled",
+              "--trust-domain", "cluster.local"]
     ports:
       - "50005:50005"
     volumes:
       - "./dapr/certs/:/var/run/secrets/dapr.io/tls"
     networks:
       - fastfoodnet
+      
+  scheduler:
+    image: "daprio/dapr:1.14.4"
+    command: [ "./scheduler", 
+               "--port", "50007"]
+    ports:
+      - "50007:50007"
+    volumes:
+      - "./dapr/certs/:/var/run/secrets/dapr.io/tls"
+      - "./dapr/data/scheduler:/data"
+    networks:
+      - fastfoodnet
         
   sentry:
-    image: "daprio/sentry"
+    image: "daprio/sentry:1.14.4"
     container_name: sentry
     command: ["./sentry",
-              "-issuer-credentials", "/certs",
-              "-trust-domain", "cluster.local",
-              "-config", "/config/config.yaml",
-              "-log-level", "debug",
+              "--issuer-credentials", "/certs",
+              "--trust-domain", "cluster.local",
+              "--config", "/config/config.yaml",
+              "--log-level", "info",
     ]
     volumes:
       - "./dapr/certs/:/certs"
@@ -231,7 +255,7 @@ services:
   
   dapr-dashboard:
     container_name: dapr-dashboard
-    image: "daprio/dashboard:0.14.0"
+    image: "daprio/dashboard:0.15.0"
     command: [ "-docker-compose=true",
                "-components-path=/home/nonroot/components",
                "-config-path=/home/nonroot/configuration",
@@ -242,6 +266,7 @@ services:
       - "./dapr/resources/:/home/nonroot/components"
       - "./dapr/config/:/home/nonroot/configuration"
       - "./docker-compose.yml:/home/nonroot/docker-compose.yml"
+      - "./dapr/certs:/app/dapr/certs"
     networks:
       - fastfoodnet
 

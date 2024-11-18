@@ -55,7 +55,7 @@ public class OrderController : ControllerBase
 
             return Ok(orderResult.ToDto());
         }
-        catch
+        catch 
         {
             return StatusCode(500);
         }
