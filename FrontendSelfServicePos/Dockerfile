@@ -8,6 +8,8 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0.100 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["FrontendSelfServicePos/FrontendSelfServicePos.csproj", "FrontendSelfServicePos/"]
+COPY ["FastFood.Common/FastFood.Common.csproj", "FastFood.Common/"]
+COPY ["OrderService.Common/OrderService.Common.csproj", "OrderService.Common/"]
 RUN dotnet restore "FrontendSelfServicePos/FrontendSelfServicePos.csproj"
 COPY . .
 WORKDIR "/src/FrontendSelfServicePos"

@@ -15,14 +15,14 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
+      <ProjectReference Include="..\FastFood.Common\FastFood.Common.csproj" />
+      <ProjectReference Include="..\OrderService.Common\OrderService.Common.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\FastFood.Common\FastFood.Common.csproj" />
-      <ProjectReference Include="..\OrderService.Common\OrderService.Common.csproj" />
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
     </ItemGroup>
 
 </Project>
