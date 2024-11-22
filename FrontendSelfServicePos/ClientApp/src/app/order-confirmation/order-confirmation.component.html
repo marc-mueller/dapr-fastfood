@@ -1,0 +1,20 @@
+<div class="order-confirmation-container">
+  <h2>Order Confirmation</h2>
+  <div *ngIf="order">
+    <div class="order-items">
+      <div *ngFor="let item of order.items" class="order-item">
+        <span>{{ item.productTitle }}</span>
+        <span>{{ item.quantity }}</span>
+        <span>{{ item.price | currency }}</span>
+      </div>
+    </div>
+    <div class="order-total">
+      <span>Total:</span>
+      <span>{{ order.total | currency }}</span>
+    </div>
+    <button (click)="confirmPayment()">Pay</button>
+  </div>
+  <div *ngIf="!order">
+    <p>Loading order details...</p>
+  </div>
+</div>

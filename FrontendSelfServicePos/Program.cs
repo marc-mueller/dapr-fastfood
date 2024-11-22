@@ -31,10 +31,17 @@ if (app.Environment.IsDevelopment())
 
 app.UseCloudEvents();
 
-app.MapControllers();
-app.MapSubscribeHandler();
-app.MapHub<OrderUpdateHub>("/orderupdatehub");
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.UseRouting();
 
-app.MapHealthChecks("/healthz");
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();
+    endpoints.MapSubscribeHandler();
+    endpoints.MapHub<OrderUpdateHub>("/orderupdatehub");
+    endpoints.MapHealthChecks("/healthz");
+    endpoints.MapFallbackToFile("index.html");
+});
 
 app.Run();

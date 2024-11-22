@@ -1,0 +1,22 @@
+<div class="shopping-cart-container">
+  <div class="product-list">
+    <div *ngFor="let product of products" class="product-item">
+      <div class="product-title">{{ product.title }}</div>
+      <div class="product-price">{{ product.price | currency }}</div>
+      <button (click)="addToCart(product)">Add to Cart</button>
+    </div>
+  </div>
+  <div class="cart">
+    <h2>Shopping Cart</h2>
+    <div *ngFor="let item of cart" class="cart-item">
+      <div class="cart-item-title">{{ item.product.title }}</div>
+      <div class="cart-item-quantity">Quantity: {{ item.quantity }}</div>
+      <div class="cart-item-price">{{ item.product.price | currency }}</div>
+      <button (click)="removeFromCart(item.product)">Remove</button>
+    </div>
+    <div class="cart-total">
+      Total: {{ cart.reduce((total, item) => total + item.product.price * item.quantity, 0) | currency }}
+    </div>
+    <button (click)="confirmOrder()" [disabled]="cart.length === 0">Order</button>
+  </div>
+</div>
