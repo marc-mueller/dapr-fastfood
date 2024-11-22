@@ -19,7 +19,7 @@ Content-Type: application/json
 }
 
 > {%
-      client.global.set("orderId", response.body.id);
+      client.global.set("orderId", response.body.orderId);
 %}
 
 ###
@@ -35,6 +35,10 @@ Content-Type: application/json
   "price": 2.5
 }
 
+> {%
+    client.global.set("itemFrenchFriesId", response.body.itemId);
+%}
+
 ###
 
 # @name addOrderlineBurger
@@ -49,8 +53,7 @@ Content-Type: application/json
 }
 
 > {%
-    client.global.set("itemFrenchFriesId", response.body.items[0].id);
-    client.global.set("itemBurgerId", response.body.items[1].id);
+    client.global.set("itemBurgerId", response.body.itemId);
 %}
 
 ###

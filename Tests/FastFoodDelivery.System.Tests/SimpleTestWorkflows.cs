@@ -11,26 +11,45 @@ namespace FastFoodDelivery.System.Tests
     public class SimpleTestWorkflows
     {
         private readonly HttpClient _client = new();
-        private readonly string _orderServiceUrl = "http://localhost:8601/api/order";
+        private readonly string _orderServiceUrlState = "http://localhost:8601/api/orderstate";
+        private readonly string _orderServiceUrlActor = "http://localhost:8601/api/orderactor";
+        private readonly string _orderServiceUrlWorkflow = "http://localhost:8601/api/orderworkflow";
         private readonly string _kitchenServiceUrl = "http://localhost:8701/api/kitchenwork";
 
         [Fact]
-        public async Task CompleteOrderProcessTest()
+        public async Task CompleteOrderProcessStateTest()
+        {
+            await CompleteOrderProcessTest(_orderServiceUrlState, _kitchenServiceUrl);
+        }
+        
+        [Fact]
+        public async Task CompleteOrderProcessActorTest()
+        {
+            await CompleteOrderProcessTest(_orderServiceUrlActor, _kitchenServiceUrl);
+        }
+        
+        [Fact]
+        public async Task CompleteOrderProcessWorkflowTest()
+        {
+            await CompleteOrderProcessTest(_orderServiceUrlWorkflow, _kitchenServiceUrl);
+        }
+        
+        private async Task CompleteOrderProcessTest(string orderServiceUrl, string kitchenServiceUrl)
         {
             // Create a new order
-            var order = await CreateOrder();
+            var orderId = await CreateOrder(orderServiceUrl);
 
             // Add French fries
-            var itemFrenchFries = await AddItemToOrder(order.Id, Guid.NewGuid(), "french fries", 1, (decimal) 2.5);
+            var itemFrenchFries = await AddItemToOrder(orderServiceUrl,orderId, Guid.NewGuid(), "french fries", 1, (decimal) 2.5);
 
             // Add hamburger
-            var itemBurger = await AddItemToOrder(order.Id, Guid.NewGuid(), "hamburger", 1, (decimal) 7.5);
+            var itemBurger = await AddItemToOrder(orderServiceUrl,orderId, Guid.NewGuid(), "hamburger", 1, (decimal) 7.5);
 
             // Confirm the order
-            await ConfirmOrder(order.Id);
+            await ConfirmOrder(orderServiceUrl,orderId);
 
             // Confirm payment
-            await ConfirmPayment(order.Id);
+            await ConfirmPayment(orderServiceUrl,orderId);
             
             // Check order status (e.g., processing)
             // disabled as we do not have some waiting time between payment and the start of processing
@@ -38,60 +57,83 @@ namespace FastFoodDelivery.System.Tests
             // await CheckOrderStatus(order.Id, OrderDtoState.Paid);
 
             // let the kitchen staff prepare the food (very fast ;-))
-            await WaitUntilOrderState(order.Id, OrderDtoState.Processing);
+            await WaitUntilOrderState(orderServiceUrl, orderId, OrderDtoState.Processing);
             
             // Mock kitchen finish for French fries
-            await FinishItemInKitchen(itemFrenchFries.Id);
+            await FinishItemInKitchen(kitchenServiceUrl, itemFrenchFries.Id);
 
             // Mock kitchen finish for hamburger
-            await FinishItemInKitchen(itemBurger.Id);
+            await FinishItemInKitchen(kitchenServiceUrl, itemBurger.Id);
             
-            await WaitUntilOrderState(order.Id, OrderDtoState.Prepared);
+            await WaitUntilOrderState(orderServiceUrl, orderId, OrderDtoState.Prepared);
 
-            await CheckOrderStatus(order.Id, OrderDtoState.Prepared);
+            await CheckOrderStatus(orderServiceUrl, orderId, OrderDtoState.Prepared);
 
             // Mark the order as served
-            await ServeOrder(order.Id);
+            await ServeOrder(orderServiceUrl,orderId);
         }
 
-        private async Task WaitUntilOrderState(Guid orderId, OrderDtoState targetState, int maxRetries = 10, int delay = 500)
+        private async Task WaitUntilOrderState(string orderServiceUrl, Guid orderId, OrderDtoState targetState, int maxRetries = 50, int delay = 500)
         {
             var retry = 0;
+            OrderDtoState? state; 
             do
             {
                 await Task.Delay(delay);
+                state = await GetOrderState(orderServiceUrl, orderId);
                 retry++;
-            } while (retry <= maxRetries && (await GetOrderState(orderId)) != targetState);
-        }       
-
-        private async Task<OrderDto> CreateOrder()
+            } while (retry <= maxRetries && (state == null ||  state != targetState));
+        }
+        
+        private async Task<OrderDto> GetAndWaitUntilOrderHasItem(string orderServiceUrl, Guid orderId, Guid itemId, int maxRetries = 50, int delay = 500)
         {
-            var response = await _client.PostAsync($"{_orderServiceUrl}/createOrder", new StringContent("{\"type\": \"Inhouse\"}", Encoding.UTF8, "application/json"));
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync();
-            var order = JsonConvert.DeserializeObject<OrderDto>(content);
-            Assert.NotNull(order);
+            var retry = 0;
+            OrderDto? order;
+            do
+            {
+                await Task.Delay(delay);
+                order = await GetOrder(orderServiceUrl, orderId);
+                retry++;
+            } while (retry <= maxRetries && (order == null || !order.Items.Any(i => i.Id == itemId)));
 
             return order;
+        }      
+
+        private async Task<Guid> CreateOrder(string orderServiceUrl)
+        {
+            var response = await _client.PostAsync($"{orderServiceUrl}/createOrder", new StringContent("{\"type\": \"Inhouse\"}", Encoding.UTF8, "application/json"));
+            response.EnsureSuccessStatusCode();
+    
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonConvert.DeserializeObject<CreateOrderResult>(content);
+    
+            Assert.NotNull(result);
+            return result.OrderId;
         }
 
-        private async Task<OrderItemDto> AddItemToOrder(Guid orderId, Guid productId, string productDescription, int quantity, decimal price)
+        private class CreateOrderResult
+        {
+            public string Message { get; set; }
+            public Guid OrderId { get; set; }
+        }
+
+        private async Task<OrderItemDto> AddItemToOrder(string orderServiceUrl, Guid orderId, Guid productId, string productDescription, int quantity, decimal price)
         {
             var itemData = new OrderItemDto()
             {
+                Id = Guid.NewGuid(),
                 ProductId = productId,
                 ProductDescription = productDescription,
                 Quantity = quantity,
                 ItemPrice = price
             };
 
-            var response = await _client.PostAsync($"{_orderServiceUrl}/addItem/{orderId}", new StringContent(JsonConvert.SerializeObject(itemData), Encoding.UTF8, "application/json"));
+            var response = await _client.PostAsync($"{orderServiceUrl}/addItem/{orderId}", new StringContent(JsonConvert.SerializeObject(itemData), Encoding.UTF8, "application/json"));
             response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync();
-            var order = JsonConvert.DeserializeObject<OrderDto>(content);
-            var item = order?.Items?.FirstOrDefault(x => x.ProductId == itemData.ProductId);
+            
+            var order = await GetAndWaitUntilOrderHasItem(orderServiceUrl, orderId, itemData.Id);
+            
+            var item = order?.Items?.FirstOrDefault(x => x.Id == itemData.Id);
             Assert.NotNull(item);
 
             // Check the properties of the returned item
@@ -103,48 +145,52 @@ namespace FastFoodDelivery.System.Tests
             return item;
         }
 
-        private async Task ConfirmOrder(Guid orderId)
+        private async Task ConfirmOrder(string orderServiceUrl, Guid orderId)
         {
-            var response = await _client.PostAsync($"{_orderServiceUrl}/confirmOrder/{orderId}", new StringContent("", Encoding.UTF8, "application/json"));
+            var response = await _client.PostAsync($"{orderServiceUrl}/confirmOrder/{orderId}", new StringContent("", Encoding.UTF8, "application/json"));
             response.EnsureSuccessStatusCode();
         }
 
-        private async Task ConfirmPayment(Guid orderId)
+        private async Task ConfirmPayment(string orderServiceUrl, Guid orderId)
         {
-            var response = await _client.PostAsync($"{_orderServiceUrl}/confirmPayment/{orderId}", new StringContent("", Encoding.UTF8, "application/json"));
+            var response = await _client.PostAsync($"{orderServiceUrl}/confirmPayment/{orderId}", new StringContent("", Encoding.UTF8, "application/json"));
             response.EnsureSuccessStatusCode();
         }
 
-        private async Task CheckOrderStatus(Guid orderId, OrderDtoState expectedStatus)
+        private async Task CheckOrderStatus(string orderServiceUrl, Guid orderId, OrderDtoState expectedStatus)
         {
-            var orderState = await GetOrderState(orderId);
+            var orderState = await GetOrderState(orderServiceUrl, orderId);
             Assert.Equal(expectedStatus, orderState);
         }
 
-        private async Task<OrderDtoState> GetOrderState(Guid orderId)
+        private async Task<OrderDtoState?> GetOrderState(string orderServiceUrl, Guid orderId)
         {
-            var response = await _client.GetAsync($"{_orderServiceUrl}/{orderId}");
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync();
-            var order = JsonConvert.DeserializeObject<OrderDto>(content);
-            if (order is null)
+            var order = await GetOrder(orderServiceUrl, orderId);
+            return order?.State;
+        }
+        
+        private async Task<OrderDto?> GetOrder(string orderServiceUrl, Guid orderId)
+        {
+            var response = await _client.GetAsync($"{orderServiceUrl}/{orderId}");
+            if (response.IsSuccessStatusCode)
             {
-                throw new ArgumentException($"Order not found for id {orderId}");
+                var content = await response.Content.ReadAsStringAsync();
+                var order = JsonConvert.DeserializeObject<OrderDto>(content);
+                return order;
             }
-            var orderState = order.State;
-            return orderState;
+
+            return null;
         }
 
-        private async Task FinishItemInKitchen(Guid itemId)
+        private async Task FinishItemInKitchen(string kitchenServiceUrl, Guid itemId)
         {
-            var response = await _client.PostAsync($"{_kitchenServiceUrl}/itemfinished/{itemId}", new StringContent("", Encoding.UTF8, "application/json"));
+            var response = await _client.PostAsync($"{kitchenServiceUrl}/itemfinished/{itemId}", new StringContent("", Encoding.UTF8, "application/json"));
             response.EnsureSuccessStatusCode();
         }
 
-        private async Task ServeOrder(Guid orderId)
+        private async Task ServeOrder(string orderServiceUrl, Guid orderId)
         {
-            var response = await _client.PostAsync($"{_orderServiceUrl}/setOrderServed/{orderId}", new StringContent("", Encoding.UTF8, "application/json"));
+            var response = await _client.PostAsync($"{orderServiceUrl}/setOrderServed/{orderId}", new StringContent("", Encoding.UTF8, "application/json"));
             response.EnsureSuccessStatusCode();
         }
     }

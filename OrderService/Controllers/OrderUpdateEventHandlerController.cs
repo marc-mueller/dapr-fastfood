@@ -11,14 +11,36 @@ namespace OrderPlacement.Controllers;
 [Route("api/[controller]")]
 public class OrderUpdateEventHandlerController : ControllerBase
 {
-    private readonly IOrderProcessingService _orderProcessingService;
     private readonly ILogger<OrderUpdateEventHandlerController> _logger;
     private bool _failForDemo = false;
+    private readonly IOrderEventRouter _orderEventRouter;
+    private readonly IOrderProcessingServiceState _orderProcessingServiceState;
+    private readonly IOrderProcessingServiceActor _orderProcessingServiceActor;
+    private readonly IOrderProcessingServiceWorkflow _orderProcessingServiceWorkflow;
 
-    public OrderUpdateEventHandlerController(IOrderProcessingService orderProcessingService, ILogger<OrderUpdateEventHandlerController> logger)
+    public OrderUpdateEventHandlerController(IOrderProcessingServiceState orderProcessingServiceState, IOrderProcessingServiceActor orderProcessingServiceActor, IOrderProcessingServiceWorkflow orderProcessingServiceWorkflow, IOrderEventRouter orderEventRouter, ILogger<OrderUpdateEventHandlerController> logger)
     {
-            _orderProcessingService = orderProcessingService;
+            _orderProcessingServiceState = orderProcessingServiceState;
+            _orderProcessingServiceActor = orderProcessingServiceActor;
+            _orderProcessingServiceWorkflow = orderProcessingServiceWorkflow;
+            _orderEventRouter = orderEventRouter;
             _logger = logger;
+    }
+    
+    private async Task<IOrderProcessingService> GetOrderProcessingServiceByOrderId(Guid orderId)
+    {
+        var serviceType = await _orderEventRouter.GetRoutingTargetForOrder(orderId);
+        switch(serviceType)
+        {
+            case OrderEventRoutingTarget.OrderProcessingServiceActor:
+                return _orderProcessingServiceActor;
+            case OrderEventRoutingTarget.OrderProcessingServiceState:
+                return _orderProcessingServiceState;
+            case OrderEventRoutingTarget.OrderProcessingServiceWorkflow:
+                return _orderProcessingServiceWorkflow;
+            default:
+                throw new Exception("Unknown service type");
+        }
     }
     
     [HttpPost("orderitemfinished")]
@@ -32,7 +54,7 @@ public class OrderUpdateEventHandlerController : ControllerBase
                 _logger.LogWarning("Processing failed for demo purposes");
                 throw new Exception("Processing failed for demo purposes");
             }
-            await _orderProcessingService.FinishedItem(itemEvent.OrderId, itemEvent.ItemId);
+            await (await GetOrderProcessingServiceByOrderId(itemEvent.OrderId)).FinishedItem(itemEvent.OrderId, itemEvent.ItemId);
             _logger.LogInformation("Finished item event received for item {ItemEventItemId} in order {ItemEventOrderId}", itemEvent.ItemId, itemEvent.OrderId);
             return Ok();
         }
@@ -54,7 +76,7 @@ public class OrderUpdateEventHandlerController : ControllerBase
                 _logger.LogWarning("Processing failed for demo purposes");
                 throw new Exception("Processing failed for demo purposes");
             }
-            await _orderProcessingService.StartProcessing(orderProcessingEvent.OrderId);
+            await (await GetOrderProcessingServiceByOrderId(orderProcessingEvent.OrderId)).StartProcessing(orderProcessingEvent.OrderId);
             _logger.LogInformation("Start processing event received for order {ItemEventOrderId}", orderProcessingEvent.OrderId);
             return Ok();
         }

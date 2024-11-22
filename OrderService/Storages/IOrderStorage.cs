@@ -3,7 +3,7 @@ using OrderService.Models.Entities;
 
 namespace OrderPlacement.Storages;
 
-public interface IReadStorage
+public interface IOrderStorage
 {
     Task<IEnumerable<Order>> GetOrders();
     Task<Order> GetOrderById(Guid id);

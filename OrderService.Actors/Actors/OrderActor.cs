@@ -275,7 +275,5 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             Logger.LogInformation($"Lost order during creation {order.Id}");
             // todo: do something regarding the lost order.
         }
-
-        
     }
 }

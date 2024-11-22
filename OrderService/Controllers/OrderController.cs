@@ -10,181 +10,172 @@ namespace OrderPlacement.Controllers;
 public class OrderController : ControllerBase
 {
     private readonly ILogger<OrderController> _logger;
-    private readonly IOrderProcessingService _orderProcessingService;
+        private readonly IOrderProcessingService _orderProcessingService;
 
-    public OrderController(IOrderProcessingService orderProcessingService, ILogger<OrderController> logger)
-    {
-        _logger = logger;
-        _orderProcessingService = orderProcessingService;
-    }
-
-    // [HttpGet()]
-    // public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders()
-    // {
-    //     var orders = await _orderProcessingService.GetOrders();
-    //     return Ok(orders);
-    // }
-
-    [HttpGet("{id}")]
-    public async Task<ActionResult<OrderDto>> GetOrder(Guid id)
-    {
-        var order = await _orderProcessingService.GetOrder(id);
-        return Ok(order.ToDto());
-    }
-
-    // [HttpGet("activeOrders")]
-    // public async Task<ActionResult<IEnumerable<OrderDto>>> GetActiveOrders()
-    // {
-    //     var orders = await _orderProcessingService.GetActiveOrders();
-    //     return Ok(orders.Select(x => x.ToDto()));
-    // }
-
-    [HttpPost("createOrder")]
-    public async Task<ActionResult<OrderDto>> CreateOrder([FromBody] OrderDto orderDto)
-    {
-        try
+        public OrderController(IOrderProcessingService orderProcessingService, ILogger<OrderController> logger)
         {
-            var order = orderDto.ToEntity();
+            _logger = logger;
+            _orderProcessingService = orderProcessingService;
+        }
 
-            if (order.Id == Guid.Empty)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<OrderDto>> GetOrder(Guid id)
+        {
+            try
             {
-                order.Id = Guid.NewGuid();
+                var order = await _orderProcessingService.GetOrder(id);
+                return Ok(order.ToDto());
             }
-
-            var orderResult = await _orderProcessingService.CreateOrder(order);
-
-            return Ok(orderResult.ToDto());
-        }
-        catch 
-        {
-            return StatusCode(500);
-        }
-    }
-
-
-    [HttpPost("assignCustomer/{orderid}")]
-    public async Task<ActionResult<OrderDto>> AssignCustomer(Guid orderid, [FromBody] CustomerDto customer)
-    {
-        try
-        {
-            var orderResult = await _orderProcessingService.AssignCustomer(orderid, customer.ToEntity());
-
-            return Ok(orderResult.ToDto());
-        }
-        catch
-        {
-            return StatusCode(500);
-        }
-    }
-
-    [HttpPost("assignInvoiceAddress/{orderid}")]
-    public async Task<ActionResult<OrderDto>> AssignInvoiceAddress(Guid orderid, [FromBody] AddressDto address)
-    {
-        try
-        {
-            var orderResult = await _orderProcessingService.AssignInvoiceAddress(orderid, address.ToEntity());
-
-            return Ok(orderResult.ToDto());
-        }
-        catch
-        {
-            return StatusCode(500);
-        }
-    }
-
-    [HttpPost("assignDeliveryAddress/{orderid}")]
-    public async Task<ActionResult<OrderDto>> AssignDeliveryAddress(Guid orderid, [FromBody] AddressDto address)
-    {
-        try
-        {
-            var orderResult = await _orderProcessingService.AssignDeliveryAddress(orderid, address.ToEntity());
-
-            return Ok(orderResult.ToDto());
-        }
-        catch
-        {
-            return StatusCode(500);
-        }
-    }
-
-    [HttpPost("addItem/{orderid}")]
-    public async Task<ActionResult<OrderDto>> AddItem(Guid orderid, [FromBody] OrderItemDto item)
-    {
-        try
-        {
-            var lineItem = item.ToEntity();
-            if(lineItem.Id == Guid.Empty)
+            catch
             {
-                lineItem.Id = Guid.NewGuid();
+                return StatusCode(500, "Failed to retrieve order.");
             }
-            
-            var orderResult = await _orderProcessingService.AddItem(orderid, lineItem);
+        }
 
-            return Ok(orderResult.ToDto());
-        }
-        catch
+        [HttpPost("createOrder")]
+        public async Task<ActionResult> CreateOrder([FromBody] OrderDto orderDto)
         {
-            return StatusCode(500);
-        }
-    }
+            try
+            {
+                var order = orderDto.ToEntity();
+                if (order.Id == Guid.Empty)
+                {
+                    order.Id = Guid.NewGuid();
+                }
 
-    [HttpPost("removeItem/{orderid}")]
-    public async Task<ActionResult<OrderDto>> RemoveItem(Guid orderid, [FromBody] Guid itemId)
-    {
-        try
-        {
-            var orderResult = await _orderProcessingService.RemoveItem(orderid, itemId);
+                await _orderProcessingService.CreateOrder(order); // Fire and forget
 
-            return Ok(orderResult.ToDto());
+                return Accepted(new { Message = "Order creation initiated", OrderId = order.Id });
+            }
+            catch
+            {
+                return StatusCode(500, "Failed to initiate order creation.");
+            }
         }
-        catch
-        {
-            return StatusCode(500);
-        }
-    }
 
-    [HttpPost("confirmOrder/{orderid}")]
-    public async Task<ActionResult<OrderDto>> ConfirmOrder(Guid orderid)
-    {
-        try
+        [HttpPost("assignCustomer/{orderid}")]
+        public async Task<ActionResult> AssignCustomer(Guid orderid, [FromBody] CustomerDto customer)
         {
-            var orderResult = await _orderProcessingService.ConfirmOrder(orderid);
+            try
+            {
+                await _orderProcessingService.AssignCustomer(orderid, customer.ToEntity()); // Fire and forget
 
-            return Ok(orderResult.ToDto());
+                return Accepted(new { Message = "Customer assignment initiated", OrderId = orderid });
+            }
+            catch
+            {
+                return StatusCode(500, "Failed to initiate customer assignment.");
+            }
         }
-        catch
-        {
-            return StatusCode(500);
-        }
-    }
 
-    [HttpPost("confirmpayment/{orderid}")]
-    public async Task<ActionResult<OrderDto>> ConfirmPayment(Guid orderid)
-    {
-        try
+        [HttpPost("assignInvoiceAddress/{orderid}")]
+        public async Task<ActionResult> AssignInvoiceAddress(Guid orderid, [FromBody] AddressDto address)
         {
-            var orderResult = await _orderProcessingService.ConfirmPayment(orderid);
+            try
+            {
+                await _orderProcessingService.AssignInvoiceAddress(orderid, address.ToEntity()); // Fire and forget
 
-            return Ok(orderResult.ToDto());
+                return Accepted(new { Message = "Invoice address assignment initiated", OrderId = orderid });
+            }
+            catch
+            {
+                return StatusCode(500, "Failed to initiate invoice address assignment.");
+            }
         }
-        catch
-        {
-            return StatusCode(500);
-        }
-    }
 
-    [HttpPost("setOrderServed/{orderid}")]
-    public async Task<ActionResult<OrderDto>> SetOrderServed(Guid orderid)
-    {
-        try
+        [HttpPost("assignDeliveryAddress/{orderid}")]
+        public async Task<ActionResult> AssignDeliveryAddress(Guid orderid, [FromBody] AddressDto address)
         {
-            var orderResult = await _orderProcessingService.Served(orderid);
+            try
+            {
+                await _orderProcessingService.AssignDeliveryAddress(orderid, address.ToEntity()); // Fire and forget
 
-            return Ok(orderResult.ToDto());
+                return Accepted(new { Message = "Delivery address assignment initiated", OrderId = orderid });
+            }
+            catch
+            {
+                return StatusCode(500, "Failed to initiate delivery address assignment.");
+            }
         }
-        catch
+
+        [HttpPost("addItem/{orderid}")]
+        public async Task<ActionResult> AddItem(Guid orderid, [FromBody] OrderItemDto item)
         {
-            return StatusCode(500);
+            try
+            {
+                var lineItem = item.ToEntity();
+                if (lineItem.Id == Guid.Empty)
+                {
+                    lineItem.Id = Guid.NewGuid();
+                }
+
+                await _orderProcessingService.AddItem(orderid, lineItem); // Fire and forget
+
+                return Accepted(new { Message = "Item addition initiated", OrderId = orderid, ItemId = lineItem.Id });
+            }
+            catch
+            {
+                return StatusCode(500, "Failed to initiate item addition.");
+            }
         }
-    }
+
+        [HttpPost("removeItem/{orderid}")]
+        public async Task<ActionResult> RemoveItem(Guid orderid, [FromBody] Guid itemId)
+        {
+            try
+            {
+                await _orderProcessingService.RemoveItem(orderid, itemId); // Fire and forget
+
+                return Accepted(new { Message = "Item removal initiated", OrderId = orderid, ItemId = itemId });
+            }
+            catch
+            {
+                return StatusCode(500, "Failed to initiate item removal.");
+            }
+        }
+
+        [HttpPost("confirmOrder/{orderid}")]
+        public async Task<ActionResult> ConfirmOrder(Guid orderid)
+        {
+            try
+            {
+                await _orderProcessingService.ConfirmOrder(orderid); // Fire and forget
+
+                return Accepted(new { Message = "Order confirmation initiated", OrderId = orderid });
+            }
+            catch
+            {
+                return StatusCode(500, "Failed to initiate order confirmation.");
+            }
+        }
+
+        [HttpPost("confirmpayment/{orderid}")]
+        public async Task<ActionResult> ConfirmPayment(Guid orderid)
+        {
+            try
+            {
+                await _orderProcessingService.ConfirmPayment(orderid); // Fire and forget
+
+                return Accepted(new { Message = "Payment confirmation initiated", OrderId = orderid });
+            }
+            catch
+            {
+                return StatusCode(500, "Failed to initiate payment confirmation.");
+            }
+        }
+
+        [HttpPost("setOrderServed/{orderid}")]
+        public async Task<ActionResult> SetOrderServed(Guid orderid)
+        {
+            try
+            {
+                await _orderProcessingService.Served(orderid); // Fire and forget
+
+                return Accepted(new { Message = "Order marked as served", OrderId = orderid });
+            }
+            catch
+            {
+                return StatusCode(500, "Failed to mark order as served.");
+            }
+        }
 }

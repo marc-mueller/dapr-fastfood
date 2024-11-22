@@ -1,6 +1,8 @@
 using System.Text.Json.Serialization;
+using Dapr.Workflow;
 using OrderPlacement.Services;
 using OrderPlacement.Storages;
+using OrderPlacement.Workflows;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,17 +14,28 @@ builder.Services.AddDaprClient(builder => builder
     .UseHttpEndpoint($"http://localhost:{daprHttpPort}")
     .UseGrpcEndpoint($"http://localhost:{daprGrpcPort}"));
 
-var useActors = true;
-if (useActors)
-{
-    builder.Services.AddSingleton<IOrderProcessingService, OrderProcessingServiceActor>();
-}
-else
-{
-    builder.Services.AddSingleton<IOrderProcessingService, OrderProcessingServiceState>();
-}
+builder.Services.AddSingleton<IOrderEventRouter, OrderEventRouter>();
+builder.Services.AddSingleton<IOrderProcessingServiceActor, OrderProcessingServiceActor>();
+builder.Services.AddSingleton<IOrderProcessingServiceState, OrderProcessingServiceState>();
+builder.Services.AddSingleton<IOrderProcessingServiceWorkflow, OrderProcessingServiceWorkflow>();
 
-builder.Services.AddSingleton<IReadStorage, ReadStorage>();
+builder.Services.AddDaprWorkflow(options =>
+{
+    options.RegisterWorkflow<OrderProcessingWorkflow>();
+    options.RegisterActivity<CreateOrderActivity>();
+    options.RegisterActivity<AssignCustomerActivity>();
+    options.RegisterActivity<AssignInvoiceAddressActivity>();
+    options.RegisterActivity<AssignDeliveryAddressActivity>();
+    options.RegisterActivity<AddItemActivity>();
+    options.RegisterActivity<RemoveItemActivity>();
+    options.RegisterActivity<ConfirmOrderActivity>();
+    options.RegisterActivity<ConfirmPaymentActivity>();
+    options.RegisterActivity<StartProcessingActivity>();
+    options.RegisterActivity<ItemFinishedActivity>();
+    options.RegisterActivity<OrderServedActivity>();
+});
+
+builder.Services.AddSingleton<IOrderStorage, OrderStorage>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

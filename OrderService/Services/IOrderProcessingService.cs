@@ -4,23 +4,27 @@ namespace OrderPlacement.Services;
 
 public interface IOrderProcessingService
 {
+    // Queries
     public Task<Order> GetOrder(Guid orderid);
-    // public Task<IEnumerable<Order>> GetOrders();
-    // public Task<IEnumerable<Order>> GetActiveOrders();
-
-    public Task<Order> CreateOrder(Order order);
-    public Task<Order> AssignCustomer(Guid orderid, Customer customer);
-    public Task<Order> AssignInvoiceAddress(Guid orderid, Address address);
-    public Task<Order> AssignDeliveryAddress(Guid orderid, Address address);
-    public Task<Order> AddItem(Guid orderid, OrderItem item);
-    public Task<Order> RemoveItem(Guid orderid, Guid itemId);
-    public Task<Order> ConfirmOrder(Guid orderid);
-    public Task<Order> ConfirmPayment(Guid orderid);
-    public Task<Order> StartProcessing(Guid orderid);
-    public Task<Order> FinishedItem(Guid orderid, Guid itemId);
-    public Task<Order> Served(Guid orderid);
-    public Task<Order> StartDelivery(Guid orderid);
-    public Task<Order> Delivered(Guid orderid);
-
-    
+        
+    // Commands
+    public Task CreateOrder(Order order);
+    public Task AssignCustomer(Guid orderid, Customer customer);
+    public Task AssignInvoiceAddress(Guid orderid, Address address);
+    public Task AssignDeliveryAddress(Guid orderid, Address address);
+    public Task AddItem(Guid orderid, OrderItem item);
+    public Task RemoveItem(Guid orderid, Guid itemId);
+    public Task ConfirmOrder(Guid orderid);
+    public Task ConfirmPayment(Guid orderid);
+    public Task StartProcessing(Guid orderid);
+    public Task FinishedItem(Guid orderid, Guid itemId);
+    public Task Served(Guid orderid);
+    public Task StartDelivery(Guid orderid);
+    public Task Delivered(Guid orderid);
 }
+
+public interface IOrderProcessingServiceState : IOrderProcessingService { }
+
+public interface IOrderProcessingServiceActor : IOrderProcessingService { }
+
+public interface IOrderProcessingServiceWorkflow : IOrderProcessingService { }
