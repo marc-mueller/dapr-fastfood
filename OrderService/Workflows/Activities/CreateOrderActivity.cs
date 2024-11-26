@@ -4,6 +4,7 @@ using FastFood.Common;
 using OrderPlacement.Storages;
 using OrderPlacement.Workflows.Extensions;
 using OrderService.Models.Entities;
+using OrderService.Models.Helpers;
 
 namespace OrderPlacement.Workflows;
 
@@ -12,10 +13,12 @@ public partial class CreateOrderActivity : WorkflowActivity<Guid, Order>
     
     private readonly ILogger<CreateOrderActivity> _logger;
     private readonly IOrderStorage _orderStorage;
+    private readonly DaprClient _daprClient;
 
-    public CreateOrderActivity(IOrderStorage orderStorage, ILogger<CreateOrderActivity> logger)
+    public CreateOrderActivity(IOrderStorage orderStorage, DaprClient daprClient, ILogger<CreateOrderActivity> logger)
     {
         _orderStorage = orderStorage;    
+        _daprClient = daprClient;
         _logger = logger;
     }
     
@@ -27,7 +30,9 @@ public partial class CreateOrderActivity : WorkflowActivity<Guid, Order>
             order = new Order();
             order.Id = input;
             order.State = OrderState.Creating;
-            await _orderStorage.UpdateOder(order);
+            order.OrderReference = $"O{Random.Shared.Next(1,999)}";
+            await _orderStorage.UpdateOrder(order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
             LogOrderCreated(context.InstanceId, order.Id);
         }
         return order;

@@ -14,18 +14,21 @@ public class OrderProcessingWorkflow : Workflow<Guid, Order>
             // Create order
             order = await context.CallActivityAsync<Order>(nameof(CreateOrderActivity), orderId);
 
-            // Configure the order. The customer is assigned with invoice and delivery address. The customer and delivery address are optional for in hourse orders.
+            // Configure the order. The customer is assigned with invoice and delivery address. The customer and delivery address are optional for in house orders.
             // Items can be added or removed to the order until the order is confirmed.
             // Once the order is confirmed, the order is ready for payment.
             while (order.State == OrderState.Creating)
             {
-                var assignCustomerEvent = context.WaitForExternalEventAsync<AssignCustomerEvent>(AssignCustomerEvent.Name);
-                var assignInvoiceAddressEvent = context.WaitForExternalEventAsync<AssignInvoiceAddressEvent>(AssignInvoiceAddressEvent.Name);
-                var assignDeliveryAddressEvent = context.WaitForExternalEventAsync<AssignDeliveryAddressEvent>(AssignDeliveryAddressEvent.Name);
-                var addItemEvent = context.WaitForExternalEventAsync<AddItemEvent>(AddItemEvent.Name);
-                var removeItemEvent = context.WaitForExternalEventAsync<RemoveItemEvent>(RemoveItemEvent.Name);
-                var confirmOrderEvent = context.WaitForExternalEventAsync<ConfirmOrderEvent>(ConfirmOrderEvent.Name);
+                using var cts = new CancellationTokenSource();
+                
+                var assignCustomerEvent = context.WaitForExternalEventAsync<AssignCustomerEvent>(AssignCustomerEvent.Name, cts.Token);
+                var assignInvoiceAddressEvent = context.WaitForExternalEventAsync<AssignInvoiceAddressEvent>(AssignInvoiceAddressEvent.Name, cts.Token);
+                var assignDeliveryAddressEvent = context.WaitForExternalEventAsync<AssignDeliveryAddressEvent>(AssignDeliveryAddressEvent.Name, cts.Token);
+                var addItemEvent = context.WaitForExternalEventAsync<AddItemEvent>(AddItemEvent.Name, cts.Token);
+                var removeItemEvent = context.WaitForExternalEventAsync<RemoveItemEvent>(RemoveItemEvent.Name, cts.Token);
+                var confirmOrderEvent = context.WaitForExternalEventAsync<ConfirmOrderEvent>(ConfirmOrderEvent.Name, cts.Token);
                 var receivedEvent = await Task.WhenAny(assignCustomerEvent, assignInvoiceAddressEvent, assignDeliveryAddressEvent, addItemEvent, removeItemEvent, confirmOrderEvent);
+                await cts.CancelAsync();
                 if (receivedEvent == assignCustomerEvent)
                 {
                     order = await context.CallActivityAsync<Order>(nameof(AssignCustomerActivity), await assignCustomerEvent);

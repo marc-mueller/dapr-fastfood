@@ -22,8 +22,9 @@ public class OrderActor : Actor, IOrderActor, IRemindable
     {
         Logger.LogInformation($"New order received: {order.Id}");
         order.State = OrderState.Creating;
+        order.OrderReference = $"O{Random.Shared.Next(1,999)}";
         await StateManager.SetStateAsync("order", order);
-
+        await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderCreated, order.ToDto());
         await RegisterReminderAsync(ReminderLostOrderDuringCreation, null, TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(30));
 
         
@@ -38,8 +39,8 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             order.Customer = customer;
 
             await StateManager.SetStateAsync("order", order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
 
-            
             return order;
         }
 
@@ -55,7 +56,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             order.Customer.InvoiceAddress = address;
 
             await StateManager.SetStateAsync("order", order);
-
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
             
             return order;
         }
@@ -72,7 +73,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             order.Customer.DeliveryAddress = address;
 
             await StateManager.SetStateAsync("order", order);
-
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
             
             return order;
         }
@@ -92,6 +93,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             order.Items?.Add(item);
 
             await StateManager.SetStateAsync("order", order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
 
             
             return order;
@@ -112,7 +114,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             }
 
             await StateManager.SetStateAsync("order", order);
-
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
             
             return order;
         }
@@ -128,7 +130,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             order.State = OrderState.Confirmed;
 
             await StateManager.SetStateAsync("order", order);
-
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderConfirmed, order.ToDto());
             
             return order;
         }
@@ -166,7 +168,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             order.State = OrderState.Processing;
 
             await StateManager.SetStateAsync("order", order);
-
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderProcessingUpdated, order.ToDto());
             
             return order;
         }
@@ -192,6 +194,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
                 }
 
                 await StateManager.SetStateAsync("order", order);
+                await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderProcessingUpdated, order.ToDto());
 
                 if (order.State == OrderState.Prepared)
                 {
@@ -207,8 +210,6 @@ public class OrderActor : Actor, IOrderActor, IRemindable
 
         throw new InvalidOperationException("Order is not in the correct state to remove an item");
     }
-    
-    // ...
 
     public async Task<Order> Served()
     {
@@ -236,6 +237,7 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             order.State = OrderState.Delivering;
 
             await StateManager.SetStateAsync("order", order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderProcessingUpdated, order.ToDto());
 
             
             return order;

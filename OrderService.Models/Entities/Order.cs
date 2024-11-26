@@ -7,6 +7,8 @@ public class Order
         Items = new List<OrderItem>();
     }
     public Guid Id { get; set; }
+    
+    public string? OrderReference { get; set; }
 
     public OrderType Type { get; set; }
     public OrderState State { get; set; }

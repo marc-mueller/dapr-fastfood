@@ -7,5 +7,7 @@ public class KitchenOrderDto
         Items = new List<KitchenOrderItemDto>();
     }
     public Guid Id { get; set; }
+
+    public string? OrderReference { get; set; }
     public ICollection<KitchenOrderItemDto> Items { get; set; }
 }

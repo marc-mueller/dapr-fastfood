@@ -16,6 +16,7 @@
     </ItemGroup>
     
     <ItemGroup>
+      <ProjectReference Include="..\FastFood.Common\FastFood.Common.csproj" />
       <ProjectReference Include="..\FinanceService.Common\FinanceService.Common.csproj" />
     </ItemGroup>
     

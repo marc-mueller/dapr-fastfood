@@ -1,5 +1,7 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dapr.Workflow;
+using FastFood.Common.Settings;
 using OrderPlacement.Services;
 using OrderPlacement.Storages;
 using OrderPlacement.Workflows;
@@ -12,7 +14,8 @@ var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT") ?? "3600
 var daprGrpcPort = Environment.GetEnvironmentVariable("DAPR_GRPC_PORT") ?? "60600";
 builder.Services.AddDaprClient(builder => builder
     .UseHttpEndpoint($"http://localhost:{daprHttpPort}")
-    .UseGrpcEndpoint($"http://localhost:{daprGrpcPort}"));
+    .UseGrpcEndpoint($"http://localhost:{daprGrpcPort}")
+    .UseJsonSerializationOptions(new JsonSerializerOptions().ConfigureJsonSerializerOptions()));
 
 builder.Services.AddSingleton<IOrderEventRouter, OrderEventRouter>();
 builder.Services.AddSingleton<IOrderProcessingServiceActor, OrderProcessingServiceActor>();
@@ -40,7 +43,7 @@ builder.Services.AddSingleton<IOrderStorage, OrderStorage>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.ConfigureJsonSerializerOptions();
     })
     .AddDapr();
 

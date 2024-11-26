@@ -8,6 +8,8 @@ public class OrderDto
     }
     public Guid Id { get; set; }
 
+    public string? OrderReference { get; set; }
+
     public OrderDtoType Type { get; set; }
     public OrderDtoState State { get; set; }
 

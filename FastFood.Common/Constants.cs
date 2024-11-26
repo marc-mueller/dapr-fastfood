@@ -8,6 +8,10 @@ public static class FastFoodConstants
 
     public static class EventNames
     {
+        public const string OrderCreated = "ordercreated";
+        public const string OrderUpdated = "orderupdated";
+        public const string OrderProcessingUpdated = "orderprocessingupdated";
+        public const string OrderConfirmed = "orderconfirmed";
         public const string OrderPaid = "orderpaid";
         public const string KitchenItemFinished = "kitchenitemfinished";
         public const string KitchenOrderStartProcessing = "kitchenorderstartprocessing";

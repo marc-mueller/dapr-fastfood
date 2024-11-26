@@ -13,10 +13,12 @@ public partial class AssignCustomerActivity : WorkflowActivity<AssignCustomerEve
 {
     private readonly IOrderStorage _orderStorage;
     private readonly ILogger<AssignCustomerActivity> _logger;
+    private readonly DaprClient _daprClient;
 
-    public AssignCustomerActivity(IOrderStorage orderStorage, ILogger<AssignCustomerActivity> logger)
+    public AssignCustomerActivity(IOrderStorage orderStorage, DaprClient daprClient, ILogger<AssignCustomerActivity> logger)
     {
         _orderStorage = orderStorage;
+        _daprClient = daprClient;
         _logger = logger;
     }
 
@@ -26,12 +28,13 @@ public partial class AssignCustomerActivity : WorkflowActivity<AssignCustomerEve
         if (order != null && order.State == OrderState.Creating)
         {
             order.Customer = input.Customer;
-            await _orderStorage.UpdateOder(order);
+            await _orderStorage.UpdateOrder(order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
             LogAssignedCustomer(context.InstanceId, order.Id, order.Customer.Id);
         }
         else
         {
-            LogAssignedCustomerFailed(context.InstanceId, order.Id, input.Customer.Id);
+            LogAssignedCustomerFailed(context.InstanceId, input.OrderId, input.Customer.Id);
         }
 
         return order;
@@ -48,10 +51,12 @@ public partial class AssignInvoiceAddressActivity : WorkflowActivity<AssignInvoi
 {
     private readonly IOrderStorage _orderStorage;
     private readonly ILogger<AssignInvoiceAddressActivity> _logger;
+    private readonly DaprClient _daprClient;
 
-    public AssignInvoiceAddressActivity(IOrderStorage orderStorage, ILogger<AssignInvoiceAddressActivity> logger)
+    public AssignInvoiceAddressActivity(IOrderStorage orderStorage, DaprClient daprClient, ILogger<AssignInvoiceAddressActivity> logger)
     {
         _orderStorage = orderStorage;
+        _daprClient = daprClient;
         _logger = logger;
     }
 
@@ -62,12 +67,13 @@ public partial class AssignInvoiceAddressActivity : WorkflowActivity<AssignInvoi
         {
             order.Customer ??= new Customer();
             order.Customer.InvoiceAddress = input.Address;
-            await _orderStorage.UpdateOder(order);
+            await _orderStorage.UpdateOrder(order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
             LogAssignedInvoiceAddress(context.InstanceId, order.Id, order.Customer.InvoiceAddress.ToString());
         }
         else
         {
-            LogAssignedInvoiceAddressFailed(context.InstanceId, order.Id, input.Address.ToString());
+            LogAssignedInvoiceAddressFailed(context.InstanceId, input.OrderId, input.Address.ToString());
         }
 
         return order;
@@ -84,10 +90,12 @@ public partial class AssignDeliveryAddressActivity : WorkflowActivity<AssignDeli
 {
     private readonly IOrderStorage _orderStorage;
     private readonly ILogger<AssignDeliveryAddressActivity> _logger;
+    private readonly DaprClient _daprClient;
 
-    public AssignDeliveryAddressActivity(IOrderStorage orderStorage, ILogger<AssignDeliveryAddressActivity> logger)
+    public AssignDeliveryAddressActivity(IOrderStorage orderStorage, DaprClient daprClient, ILogger<AssignDeliveryAddressActivity> logger)
     {
         _orderStorage = orderStorage;
+        _daprClient = daprClient;
         _logger = logger;
     }
 
@@ -98,12 +106,13 @@ public partial class AssignDeliveryAddressActivity : WorkflowActivity<AssignDeli
         {
             order.Customer ??= new Customer();
             order.Customer.DeliveryAddress = input.Address;
-            await _orderStorage.UpdateOder(order);
+            await _orderStorage.UpdateOrder(order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
             LogAssignedDeliveryAddress(context.InstanceId, order.Id, order.Customer.DeliveryAddress.ToString());
         }
         else
         {
-            LogAssignedDeliveryAddressFailed(context.InstanceId, order.Id, input.Address.ToString());
+            LogAssignedDeliveryAddressFailed(context.InstanceId, input.OrderId, input.Address.ToString());
         }
 
         return order;
@@ -120,10 +129,12 @@ public partial class AddItemActivity : WorkflowActivity<AddItemEvent, Order>
 {
     private readonly IOrderStorage _orderStorage;
     private readonly ILogger<AddItemActivity> _logger;
+    private readonly DaprClient _daprClient;
 
-    public AddItemActivity(IOrderStorage orderStorage, ILogger<AddItemActivity> logger)
+    public AddItemActivity(IOrderStorage orderStorage, DaprClient daprClient, ILogger<AddItemActivity> logger)
     {
         _orderStorage = orderStorage;
+        _daprClient = daprClient;
         _logger = logger;
     }
 
@@ -132,7 +143,7 @@ public partial class AddItemActivity : WorkflowActivity<AddItemEvent, Order>
         var order = await _orderStorage.GetOrderById(input.OrderId);
         if (order != null && order.State == OrderState.Creating)
         {
-            var existingItem = order.Items.FirstOrDefault(i => i.Id == input.Item.Id);
+            var existingItem = order.Items?.FirstOrDefault(i => i.Id == input.Item.Id);
             if (existingItem != null)
             {
                 // item already exists, idempotent operation
@@ -141,13 +152,14 @@ public partial class AddItemActivity : WorkflowActivity<AddItemEvent, Order>
             else
             {
                 order.Items.Add(input.Item);
-                await _orderStorage.UpdateOder(order);
+                await _orderStorage.UpdateOrder(order);
+                await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
                 LogAddedItem(context.InstanceId, order.Id, input.Item.Id);
             }
         }
         else
         {
-            LogAddedItemFailed(context.InstanceId, order.Id, input.Item.Id);
+            LogAddedItemFailed(context.InstanceId, input.OrderId, input.Item.Id);
         }
 
         return order;
@@ -164,10 +176,12 @@ public partial class RemoveItemActivity : WorkflowActivity<RemoveItemEvent, Orde
 {
     private readonly IOrderStorage _orderStorage;
     private readonly ILogger<RemoveItemActivity> _logger;
+    private readonly DaprClient _daprClient;
 
-    public RemoveItemActivity(IOrderStorage orderStorage, ILogger<RemoveItemActivity> logger)
+    public RemoveItemActivity(IOrderStorage orderStorage, DaprClient daprClient, ILogger<RemoveItemActivity> logger)
     {
         _orderStorage = orderStorage;
+        _daprClient = daprClient;
         _logger = logger;
     }
 
@@ -180,7 +194,8 @@ public partial class RemoveItemActivity : WorkflowActivity<RemoveItemEvent, Orde
             if (itemToRemove != null)
             {
                 order.Items.Remove(itemToRemove);
-                await _orderStorage.UpdateOder(order);
+                await _orderStorage.UpdateOrder(order);
+                await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
                 LogRemovedItem(context.InstanceId, order.Id, itemToRemove.Id);
             }
             else
@@ -190,7 +205,7 @@ public partial class RemoveItemActivity : WorkflowActivity<RemoveItemEvent, Orde
         }
         else
         {
-            LogRemovedItemFailed(context.InstanceId, order.Id, input.ItemId);
+            LogRemovedItemFailed(context.InstanceId, input.OrderId, input.ItemId);
         }
 
         return order;
@@ -207,10 +222,12 @@ public partial class ConfirmOrderActivity : WorkflowActivity<ConfirmOrderEvent, 
 {
     private readonly IOrderStorage _orderStorage;
     private readonly ILogger<ConfirmOrderActivity> _logger;
+    private readonly DaprClient _daprClient;
 
-    public ConfirmOrderActivity(IOrderStorage orderStorage, ILogger<ConfirmOrderActivity> logger)
+    public ConfirmOrderActivity(IOrderStorage orderStorage, DaprClient daprClient, ILogger<ConfirmOrderActivity> logger)
     {
         _orderStorage = orderStorage;
+        _daprClient = daprClient;
         _logger = logger;
     }
 
@@ -223,7 +240,8 @@ public partial class ConfirmOrderActivity : WorkflowActivity<ConfirmOrderEvent, 
 
             {
                 order.State = OrderState.Confirmed;
-                await _orderStorage.UpdateOder(order);
+                await _orderStorage.UpdateOrder(order);
+                await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderConfirmed, order.ToDto());
                 LogConfirmedOrder(context.InstanceId, order.Id);
             }
             else
@@ -233,7 +251,7 @@ public partial class ConfirmOrderActivity : WorkflowActivity<ConfirmOrderEvent, 
         }
         else
         {
-            LogConfirmedOrderFailed(context.InstanceId, order.Id);
+            LogConfirmedOrderFailed(context.InstanceId, input.OrderId);
         }
 
         return order;
@@ -267,7 +285,7 @@ public partial class ConfirmPaymentActivity : WorkflowActivity<ConfirmPaymentEve
             if (order.State == OrderState.Confirmed)
             {
                 order.State = OrderState.Paid;
-                await _orderStorage.UpdateOder(order);
+                await _orderStorage.UpdateOrder(order);
                 await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderPaid, order.ToDto());
                 await _daprClient.InvokeMethodAsync(HttpMethod.Post, FastFoodConstants.Services.FinanceService, "api/OrderFinance/newOrder", order.ToFinanceDto());
                 LogPaymentConfirmed(context.InstanceId, order.Id);
@@ -279,7 +297,7 @@ public partial class ConfirmPaymentActivity : WorkflowActivity<ConfirmPaymentEve
         }
         else
         {
-            LogPaymentConfirmedFailed(context.InstanceId, order.Id);
+            LogPaymentConfirmedFailed(context.InstanceId, input.OrderId);
         }
 
         return order;
@@ -296,10 +314,12 @@ public partial class StartProcessingActivity : WorkflowActivity<StartProcessingE
 {
     private readonly ILogger<StartProcessingActivity> _logger;
     private readonly IOrderStorage _orderStorage;
+    private readonly DaprClient _daprClient;
 
-    public StartProcessingActivity(IOrderStorage orderStorage, ILogger<StartProcessingActivity> logger)
+    public StartProcessingActivity(IOrderStorage orderStorage, DaprClient daprClient, ILogger<StartProcessingActivity> logger)
     {
         _orderStorage = orderStorage;
+        _daprClient = daprClient;
         _logger = logger;
     }
 
@@ -311,7 +331,8 @@ public partial class StartProcessingActivity : WorkflowActivity<StartProcessingE
             if (order.State == OrderState.Paid)
             {
                 order.State = OrderState.Processing;
-                await _orderStorage.UpdateOder(order);
+                await _orderStorage.UpdateOrder(order);
+                await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderProcessingUpdated, order.ToDto());
                 LogStartProcessing(context.InstanceId, order.Id);
             }
             else
@@ -321,7 +342,7 @@ public partial class StartProcessingActivity : WorkflowActivity<StartProcessingE
         }
         else
         {
-            LogStartProcessingFailed(context.InstanceId, order.Id);
+            LogStartProcessingFailed(context.InstanceId, input.OrderId);
         }
 
         return order;
@@ -365,11 +386,15 @@ public partial class ItemFinishedActivity : WorkflowActivity<ItemFinishedEvent, 
                         order.State = OrderState.Prepared;
                     }
 
-                    await _orderStorage.UpdateOder(order);
+                    await _orderStorage.UpdateOrder(order);
 
                     if (order.State == OrderState.Prepared)
                     {
                         await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderPrepared, order.ToDto());
+                    }
+                    else
+                    {
+                        await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderProcessingUpdated, order.ToDto());
                     }
 
                     LogItemFinished(context.InstanceId, order.Id, itemToUpdate.Id);
@@ -379,7 +404,7 @@ public partial class ItemFinishedActivity : WorkflowActivity<ItemFinishedEvent, 
         }
         else
         {
-            LogItemFinishedFailed(context.InstanceId, order.Id, input.ItemId);
+            LogItemFinishedFailed(context.InstanceId, input.OrderId, input.ItemId);
         }
 
         return order;
@@ -413,7 +438,7 @@ public partial class OrderServedActivity : WorkflowActivity<OrderServedEvent, Or
             if (order.State == OrderState.Prepared && order.Type == OrderType.Inhouse)
             {
                 order.State = OrderState.Closed;
-                await _orderStorage.UpdateOder(order);
+                await _orderStorage.UpdateOrder(order);
                 await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderClosed, order.ToDto());
                 await _daprClient.InvokeMethodAsync(HttpMethod.Post, FastFoodConstants.Services.FinanceService, "api/OrderFinance/closeOrder", order.Id);
                 LogServed(context.InstanceId, order.Id);
@@ -425,7 +450,7 @@ public partial class OrderServedActivity : WorkflowActivity<OrderServedEvent, Or
         }
         else
         {
-            LogServedFailed(context.InstanceId, order.Id);
+            LogServedFailed(context.InstanceId,input.OrderId);
         }
         return order;
     }

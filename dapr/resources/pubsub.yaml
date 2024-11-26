@@ -24,3 +24,6 @@ scopes:
   - kitchenservice
   - financeservice
   - orderserviceactors
+  - frontendselfservicepos
+  - frontendkitchenmonitor
+  - frontendcustomerorderstatus

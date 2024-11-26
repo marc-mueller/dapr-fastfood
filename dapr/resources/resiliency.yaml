@@ -5,6 +5,9 @@ metadata:
 scopes:
   - orderservice
   - kitchenservice
+#  - frontendselfservicepos
+#  - frontendkitchenmonitor
+#  - frontendcustomerorderstatus
 
 spec:
   policies:

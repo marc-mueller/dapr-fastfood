@@ -7,7 +7,7 @@ public static class DtoConverter
 {
     public static OrderDto ToDto(this Order order)
     {
-        return new OrderDto(){ Id = order.Id, State = (OrderDtoState)order.State, Type = (OrderDtoType)order.Type, Items = order.Items?.Select(i => i.ToDto()).ToList(), Customer = order.Customer?.ToDto()};
+        return new OrderDto(){ Id = order.Id, OrderReference = order.OrderReference, State = (OrderDtoState)order.State, Type = (OrderDtoType)order.Type, Items = order.Items?.Select(i => i.ToDto()).ToList(), Customer = order.Customer?.ToDto()};
     }
 
     public static OrderItemDto ToDto(this OrderItem item)
@@ -27,7 +27,7 @@ public static class DtoConverter
     
     public static Order ToEntity(this OrderDto order)
     {
-        return new Order(){ Id = order.Id, State = (OrderState)order.State, Type = (OrderType)order.Type, Items = order.Items?.Select(i => i.ToEntity()).ToList(), Customer = order.Customer?.ToEntity()};
+        return new Order(){ Id = order.Id, OrderReference = order.OrderReference, State = (OrderState)order.State, Type = (OrderType)order.Type, Items = order.Items?.Select(i => i.ToEntity()).ToList(), Customer = order.Customer?.ToEntity()};
     }
     
     public static OrderItem ToEntity(this OrderItemDto item)

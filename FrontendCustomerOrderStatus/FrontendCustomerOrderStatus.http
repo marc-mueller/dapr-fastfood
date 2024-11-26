@@ -1,0 +1,6 @@
+@FrontendCustomerOrderStatus_HostAddress = http://localhost:5132
+
+GET {{FrontendCustomerOrderStatus_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

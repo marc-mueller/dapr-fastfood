@@ -45,7 +45,7 @@ public class OrderController : ControllerBase
 
                 await _orderProcessingService.CreateOrder(order); // Fire and forget
 
-                return Accepted(new { Message = "Order creation initiated", OrderId = order.Id });
+                return Ok(new OrderAcknowledgement { Message = "Order creation initiated", OrderId = order.Id });
             }
             catch
             {
@@ -60,7 +60,7 @@ public class OrderController : ControllerBase
             {
                 await _orderProcessingService.AssignCustomer(orderid, customer.ToEntity()); // Fire and forget
 
-                return Accepted(new { Message = "Customer assignment initiated", OrderId = orderid });
+                return Ok(new OrderAcknowledgement { Message = "Customer assignment initiated", OrderId = orderid });
             }
             catch
             {
@@ -75,7 +75,7 @@ public class OrderController : ControllerBase
             {
                 await _orderProcessingService.AssignInvoiceAddress(orderid, address.ToEntity()); // Fire and forget
 
-                return Accepted(new { Message = "Invoice address assignment initiated", OrderId = orderid });
+                return Ok(new OrderAcknowledgement{ Message = "Invoice address assignment initiated", OrderId = orderid });
             }
             catch
             {
@@ -90,7 +90,7 @@ public class OrderController : ControllerBase
             {
                 await _orderProcessingService.AssignDeliveryAddress(orderid, address.ToEntity()); // Fire and forget
 
-                return Accepted(new { Message = "Delivery address assignment initiated", OrderId = orderid });
+                return Ok(new OrderAcknowledgement { Message = "Delivery address assignment initiated", OrderId = orderid });
             }
             catch
             {
@@ -111,7 +111,7 @@ public class OrderController : ControllerBase
 
                 await _orderProcessingService.AddItem(orderid, lineItem); // Fire and forget
 
-                return Accepted(new { Message = "Item addition initiated", OrderId = orderid, ItemId = lineItem.Id });
+                return Ok(new ItemAcknowledgement { Message = "Item addition initiated", OrderId = orderid, ItemId = lineItem.Id });
             }
             catch
             {
@@ -126,7 +126,7 @@ public class OrderController : ControllerBase
             {
                 await _orderProcessingService.RemoveItem(orderid, itemId); // Fire and forget
 
-                return Accepted(new { Message = "Item removal initiated", OrderId = orderid, ItemId = itemId });
+                return Ok(new ItemAcknowledgement { Message = "Item removal initiated", OrderId = orderid, ItemId = itemId });
             }
             catch
             {
@@ -141,7 +141,7 @@ public class OrderController : ControllerBase
             {
                 await _orderProcessingService.ConfirmOrder(orderid); // Fire and forget
 
-                return Accepted(new { Message = "Order confirmation initiated", OrderId = orderid });
+                return Ok(new OrderAcknowledgement { Message = "Order confirmation initiated", OrderId = orderid });
             }
             catch
             {
@@ -156,7 +156,7 @@ public class OrderController : ControllerBase
             {
                 await _orderProcessingService.ConfirmPayment(orderid); // Fire and forget
 
-                return Accepted(new { Message = "Payment confirmation initiated", OrderId = orderid });
+                return Ok(new OrderAcknowledgement { Message = "Payment confirmation initiated", OrderId = orderid });
             }
             catch
             {
@@ -171,7 +171,7 @@ public class OrderController : ControllerBase
             {
                 await _orderProcessingService.Served(orderid); // Fire and forget
 
-                return Accepted(new { Message = "Order marked as served", OrderId = orderid });
+                return Ok(new OrderAcknowledgement { Message = "Order marked as served", OrderId = orderid });
             }
             catch
             {

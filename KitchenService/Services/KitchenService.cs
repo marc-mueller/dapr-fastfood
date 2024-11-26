@@ -16,22 +16,27 @@ public class KitchenService : IKitchenService
         _mockStorage = new Dictionary<Guid, KitchenOrder>();
     }
 
-    public Task<KitchenOrder> AddOrder(Guid orderId, IEnumerable<Tuple<Guid, Guid, int, string?>> items)
+    public Task<KitchenOrder> AddOrder(Guid orderId, string orderReference, IEnumerable<Tuple<Guid, Guid, int, string?>> items)
     {
-        var order = new KitchenOrder() {Id = orderId};
+        var order = new KitchenOrder() {Id = orderId, OrderReference = orderReference};
         foreach (var item in items)
         {
             order.Items.Add(new KitchenOrderItem() { OrderId = order.Id, Id = item.Item1, ProductId = item.Item2, Quantity = item.Item3, CustomerComments = item.Item4});
         }
         _mockStorage.Add(order.Id, order);
         
-        _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, "kitchenorderstartprocessing", new KitchenOrderStartProcessingEvent(){ OrderId = order.Id });
+        _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.KitchenOrderStartProcessing, new KitchenOrderStartProcessingEvent(){ OrderId = order.Id });
         return Task.FromResult(order);
     }
     
     public Task<IEnumerable<KitchenOrder>> GetPendingOrders()
     {
         return Task.FromResult(_mockStorage.Values.Where(o => o.Items.Any(i => i.State == KitchenOrderItemState.AwaitingPreparation)));
+    }
+    
+    public Task<KitchenOrder?> GetPendingOrder(Guid id)
+    {
+        return Task.FromResult(_mockStorage.Values.Where(o => o.Items.Any(i => i.State == KitchenOrderItemState.AwaitingPreparation)).SingleOrDefault(o => o.Id == id));
     }
     
     public Task<IEnumerable<KitchenOrderItem>> GetPendingItems()

@@ -1,0 +1,6 @@
+@FrontendKitchenMonitor_HostAddress = http://localhost:5105
+
+GET {{FrontendKitchenMonitor_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -34,7 +34,9 @@ public class OrderProcessingServiceState : IOrderProcessingServiceState
     public async Task CreateOrder(Order order)
     {
         order.State = OrderState.Creating;
+        order.OrderReference = $"O{Random.Shared.Next(1,999)}";
         await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
+        await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderCreated, order.ToDto());
         await _orderEventRouter.RegisterOrderForService(order.Id, OrderEventRoutingTarget.OrderProcessingServiceState);
     }
 
@@ -46,6 +48,7 @@ public class OrderProcessingServiceState : IOrderProcessingServiceState
             order.Customer = customer;
 
             await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
         }
         else
         {
@@ -62,6 +65,7 @@ public class OrderProcessingServiceState : IOrderProcessingServiceState
             order.Customer.InvoiceAddress = address;
 
             await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
         }
         else
         {
@@ -78,6 +82,7 @@ public class OrderProcessingServiceState : IOrderProcessingServiceState
             order.Customer.DeliveryAddress = address;
 
             await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
         }
         else
         {
@@ -93,6 +98,7 @@ public class OrderProcessingServiceState : IOrderProcessingServiceState
             order.Items?.Add(item);
 
             await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
         }
         else
         {
@@ -112,6 +118,7 @@ public class OrderProcessingServiceState : IOrderProcessingServiceState
             }
 
             await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
         }
         else
         {
@@ -127,6 +134,7 @@ public class OrderProcessingServiceState : IOrderProcessingServiceState
             order.State = OrderState.Confirmed;
 
             await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderConfirmed, order.ToDto());
         }
         else
         {
@@ -161,6 +169,7 @@ public class OrderProcessingServiceState : IOrderProcessingServiceState
             order.State = OrderState.Processing;
 
             await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderProcessingUpdated, order.ToDto());
         }
         else
         {
@@ -184,6 +193,7 @@ public class OrderProcessingServiceState : IOrderProcessingServiceState
                 }
 
                 await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
+                await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderProcessingUpdated, order.ToDto());
 
                 if (order.State == OrderState.Prepared)
                 {
@@ -228,6 +238,7 @@ public class OrderProcessingServiceState : IOrderProcessingServiceState
             order.State = OrderState.Delivering;
 
             await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
+            await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderProcessingUpdated, order.ToDto());
         }
         else
         {

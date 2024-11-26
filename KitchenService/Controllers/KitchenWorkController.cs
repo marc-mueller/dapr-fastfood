@@ -26,6 +26,21 @@ public class KitchenWorkController : ControllerBase
         var orders = await _kitchenServie.GetPendingOrders();
         return Ok(orders.Select(o => o.ToDto()));
     }
+    
+    [HttpGet("pendingorder/{id}")]
+    public async Task<ActionResult<KitchenOrderDto>> GetPendingOrder(Guid id)
+    {
+        _logger.LogInformation("GetPendingOrder requested for {OrderId}", id);
+        var order = await _kitchenServie.GetPendingOrder(id);
+        if (order != null)
+        {
+            return Ok(order.ToDto());
+        }
+        else
+        {
+            return NotFound();
+        }
+    }
 
     // returns all pending items
     [HttpGet("pendingitems")]

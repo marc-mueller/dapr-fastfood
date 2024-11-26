@@ -31,7 +31,7 @@ public class OrderStorage : IOrderStorage
         throw new NotImplementedException();
     }
 
-    public async Task<Order> UpdateOder(Order order)
+    public async Task<Order> UpdateOrder(Order order)
     {
         await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName, GetStateId(order.Id), order);
         return order;

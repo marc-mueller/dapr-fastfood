@@ -180,6 +180,141 @@
         condition: service_healthy
     network_mode: "service:orderserviceactors"
 
+  frontendselfservicepos:
+    container_name: frontendselfservicepos
+    image: frontendselfservicepos
+    build:
+      context: .
+      dockerfile: FrontendSelfServicePos/Dockerfile
+    ports:
+      - "8801:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+    networks:
+      - fastfoodnet
+
+  frontendselfservicepos-dapr:
+    container_name: frontendselfservicepos-dapr
+    image: "daprio/daprd:1.14.4"
+    command: ["./daprd",
+              "--app-id", "frontendselfservicepos",
+              "--app-port", "8080",
+              "--placement-host-address", "placement:50005",
+              "--resources-path", "/resources",
+              "--config", "/config/config.yaml",
+              "--sentry-address", "sentry:50001",
+              "--log-level", "info",
+              "--control-plane-trust-domain", "cluster.local",
+              "--enable-mtls"]
+    volumes:
+      - "./dapr/resources/:/resources"
+      - "./dapr/config/:/config"
+    env_file:
+      - ./dapr/certs/mtls.env
+    depends_on:
+      kitchenservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:frontendselfservicepos"
+    
+  frontendkitchenmonitor:
+    container_name: frontendkitchenmonitor
+    image: frontendkitchenmonitor
+    build:
+      context: .
+      dockerfile: FrontendKitchenMonitor/Dockerfile
+    ports:
+      - "8802:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+    networks:
+      - fastfoodnet  
+  
+  frontendkitchenmonitor-dapr:
+    container_name: frontendkitchenmonitor-dapr
+    image: "daprio/daprd:1.14.4"
+    command: [ "./daprd",
+               "--app-id", "frontendkitchenmonitor",
+               "--app-port", "8080",
+               "--placement-host-address", "placement:50005",
+               "--resources-path", "/resources",
+               "--config", "/config/config.yaml",
+               "--sentry-address", "sentry:50001",
+               "--log-level", "info",
+               "--control-plane-trust-domain", "cluster.local",
+               "--enable-mtls" ]
+    volumes:
+      - "./dapr/resources/:/resources"
+      - "./dapr/config/:/config"
+    env_file:
+      - ./dapr/certs/mtls.env
+    depends_on:
+      kitchenservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:frontendkitchenmonitor"
+
+  frontendcustomerorderstatus:
+    container_name: frontendcustomerorderstatus
+    image: frontendcustomerorderstatus
+    build:
+      context: .
+      dockerfile: FrontendCustomerOrderStatus/Dockerfile
+    ports:
+      - "8803:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+    networks:
+      - fastfoodnet
+  
+  frontendcustomerorderstatus-dapr:
+    container_name: frontendcustomerorderstatus-dapr
+    image: "daprio/daprd:1.14.4"
+    command: [ "./daprd",
+               "--app-id", "frontendcustomerorderstatus",
+               "--app-port", "8080",
+               "--placement-host-address", "placement:50005",
+               "--resources-path", "/resources",
+               "--config", "/config/config.yaml",
+               "--sentry-address", "sentry:50001",
+               "--log-level", "info",
+               "--control-plane-trust-domain", "cluster.local",
+               "--enable-mtls" ]
+    volumes:
+      - "./dapr/resources/:/resources"
+      - "./dapr/config/:/config"
+    env_file:
+      - ./dapr/certs/mtls.env
+    depends_on:
+      kitchenservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:frontendcustomerorderstatus"
+
   redis:
     container_name: redis
     image: "redis:7.2.4"
