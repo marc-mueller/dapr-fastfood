@@ -12,7 +12,20 @@ const finishItem = async (itemId) => {
   }
 };
 
-const pendingOrders = computed(() => store.getters.pendingOrders);
+const pendingOrders = computed(() => store.getters.pendingOrders.map(x => ({
+  ...x,
+  items: [...x.items.toSorted((a,b) => {
+    if (a.state === 'Finished') {
+      return 1;
+    }
+
+    if (b.state === 'Finished') {
+      return -1;
+    }
+
+    return -1;
+  })]
+})));
 
 onMounted(() => {
   store.dispatch('fetchPendingOrders');
@@ -23,6 +36,7 @@ onMounted(() => {
 <template>
   <div>
     <h1 class="text-2xl font-bold mb-4">Kitchen Monitor</h1>
+
     <div v-for="order in pendingOrders" :key="order.id" class="bg-white shadow-md rounded-lg p-4 mb-4">
       <h2 class="text-xl font-semibold mb-2">Order {{ order.orderReference }} ({{ order.id }})</h2>
       <ul>
