@@ -1,5 +1,5 @@
 <template>
-  <div id="app" class="min-h-screen flex">
+  <div id="app" class="flex">
     <router-view />
   </div>
 </template>
@@ -11,7 +11,11 @@ export default {
 </script>
 
 <style>
+html, body {
+  height: 100%;
+}
+
 #app {
-  @apply font-sans text-gray-800;
+  @apply font-sans text-gray-800 h-full;
 }
 </style>

@@ -16,12 +16,12 @@ public class KitchenService : IKitchenService
         _mockStorage = new Dictionary<Guid, KitchenOrder>();
     }
 
-    public Task<KitchenOrder> AddOrder(Guid orderId, string orderReference, IEnumerable<Tuple<Guid, Guid, int, string?>> items)
+    public Task<KitchenOrder> AddOrder(Guid orderId, string orderReference, IEnumerable<Tuple<Guid, Guid, string, int, string?>> items)
     {
         var order = new KitchenOrder() {Id = orderId, OrderReference = orderReference};
         foreach (var item in items)
         {
-            order.Items.Add(new KitchenOrderItem() { OrderId = order.Id, Id = item.Item1, ProductId = item.Item2, Quantity = item.Item3, CustomerComments = item.Item4});
+            order.Items.Add(new KitchenOrderItem() { OrderId = order.Id, Id = item.Item1, ProductId = item.Item2, ProductDescription  = item.Item3, Quantity = item.Item4, CustomerComments = item.Item5});
         }
         _mockStorage.Add(order.Id, order);
         

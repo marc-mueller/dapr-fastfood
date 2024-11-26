@@ -34,7 +34,7 @@ public class KitchenEventHandlerController : ControllerBase
                 throw new Exception("Processing failed for demo purposes");
             }
             _logger.LogInformation("New order received in kitchen: {OrderId}", order.Id);
-            await _kitchenService.AddOrder(order.Id, order.OrderReference, order.Items!.Select(i => new Tuple<Guid, Guid, int, string?>(i.Id, i.ProductId, i.Quantity, i.CustomerComments)));
+            await _kitchenService.AddOrder(order.Id, order.OrderReference, order.Items!.Select(i => new Tuple<Guid, Guid, string, int, string?>(i.Id, i.ProductId, i.ProductDescription, i.Quantity, i.CustomerComments)));
             return Ok();
         }
         catch (Exception ex)
