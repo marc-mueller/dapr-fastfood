@@ -1,0 +1,49 @@
+apiVersion: dapr.io/v1alpha1
+kind: Resiliency
+metadata:
+  name: demoresiliency
+scopes:
+  - orderservice
+  - kitchenservice
+#  - frontendselfservicepos
+#  - frontendkitchenmonitor
+#  - frontendcustomerorderstatus
+
+spec:
+  policies:
+    retries:
+      retryForever:
+        policy: constant
+        maxInterval: 5s
+        maxRetries: -1
+
+      pubsubRetry:
+        policy: constant
+        duration: 5s
+        maxRetries: 3 # Ensure 3 retries before sending to dead letter queue
+    
+    circuitBreakers:
+      simpleCB:
+        maxRequests: 1
+        timeout: 5s
+        trip: consecutiveFailures >= 5
+
+  targets:
+    apps:
+      orderservice:
+        retry: retryForever
+        circuitBreaker: simpleCB
+
+      kitchenservice: 
+        retry: retryForever
+        circuitBreaker: simpleCB
+    
+    components:
+      statestore:
+        outbound:
+          retry: retryForever
+          circuitBreaker: simpleCB
+
+      pubsub: 
+        inbound:
+          retry: pubsubRetry

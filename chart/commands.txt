@@ -1,0 +1,3 @@
+helm dependency update
+helm dependency build
+helm upgrade --install fastfood -f ..\values.release.yaml --namespace fastfood .

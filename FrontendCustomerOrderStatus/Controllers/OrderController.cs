@@ -11,7 +11,7 @@ public partial class OrderController : ControllerBase
 {
     private readonly DaprClient _daprClient;
     private readonly ILogger<OrderController> _logger;
-    private const string ApiPrefix = "api/orderactor";
+    private const string ApiPrefix = "api/orderstate";
 
     public OrderController(DaprClient daprClient, ILogger<OrderController> logger)
     {

@@ -1,0 +1,25 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+  namespace: fastfood
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: {{ .Values.dapr.redisHost | quote }}
+  - name: redisPassword
+    secretKeyRef:
+      name: {{ template "fastfood.fullname" . }}-dapr-secrets
+      key: redis-password
+  - name: actorStateStore
+    value: "true"
+scopes:
+  - orderservice
+  - kitchenservice
+  - financeservice
+  - orderserviceactors
+  - frontendselfservicepos
+  - frontendkitchenmonitor
+  - frontendcustomerorderstatus
