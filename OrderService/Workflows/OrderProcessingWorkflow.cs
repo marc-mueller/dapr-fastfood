@@ -14,50 +14,85 @@ public class OrderProcessingWorkflow : Workflow<Guid, Order>
             // Create order
             order = await context.CallActivityAsync<Order>(nameof(CreateOrderActivity), orderId);
 
-            // Configure the order. The customer is assigned with invoice and delivery address. The customer and delivery address are optional for in house orders.
-            // Items can be added or removed to the order until the order is confirmed.
-            // Once the order is confirmed, the order is ready for payment.
+            // Remark: Waiting for multiple different event does not work. Therefore the event during order creation have been wrapped into a single event.
+            
+            // // Configure the order. The customer is assigned with invoice and delivery address. The customer and delivery address are optional for in house orders.
+            // // Items can be added or removed to the order until the order is confirmed.
+            // // Once the order is confirmed, the order is ready for payment.
+            // while (order.State == OrderState.Creating)
+            // {
+            //     using var cts = new CancellationTokenSource();
+            //     
+            //     var assignCustomerEvent = context.WaitForExternalEventAsync<AssignCustomerEvent>(AssignCustomerEvent.Name, cts.Token);
+            //     var assignInvoiceAddressEvent = context.WaitForExternalEventAsync<AssignInvoiceAddressEvent>(AssignInvoiceAddressEvent.Name, cts.Token);
+            //     var assignDeliveryAddressEvent = context.WaitForExternalEventAsync<AssignDeliveryAddressEvent>(AssignDeliveryAddressEvent.Name, cts.Token);
+            //     var addItemEvent = context.WaitForExternalEventAsync<AddItemEvent>(AddItemEvent.Name, cts.Token);
+            //     var removeItemEvent = context.WaitForExternalEventAsync<RemoveItemEvent>(RemoveItemEvent.Name, cts.Token);
+            //     var confirmOrderEvent = context.WaitForExternalEventAsync<ConfirmOrderEvent>(ConfirmOrderEvent.Name, cts.Token);
+            //     var receivedEvent = await Task.WhenAny(assignCustomerEvent, assignInvoiceAddressEvent, assignDeliveryAddressEvent, addItemEvent, removeItemEvent, confirmOrderEvent);
+            //     await cts.CancelAsync();
+            //     if (receivedEvent == assignCustomerEvent)
+            //     {
+            //         order = await context.CallActivityAsync<Order>(nameof(AssignCustomerActivity), await assignCustomerEvent);
+            //     }
+            //     else if (receivedEvent == assignInvoiceAddressEvent)
+            //     {
+            //         order = await context.CallActivityAsync<Order>(nameof(AssignInvoiceAddressActivity), await assignInvoiceAddressEvent);
+            //     }
+            //     else if (receivedEvent == assignDeliveryAddressEvent)
+            //     {
+            //         order = await context.CallActivityAsync<Order>(nameof(AssignDeliveryAddressActivity), await assignDeliveryAddressEvent);
+            //     }
+            //     else if (receivedEvent == addItemEvent)
+            //     {
+            //         order = await context.CallActivityAsync<Order>(nameof(AddItemActivity), await addItemEvent);
+            //     }
+            //     else if (receivedEvent == removeItemEvent)
+            //     {
+            //         order = await context.CallActivityAsync<Order>(nameof(RemoveItemActivity), await removeItemEvent);
+            //     }
+            //     else if (receivedEvent == confirmOrderEvent)
+            //     {
+            //         order = await context.CallActivityAsync<Order>(nameof(ConfirmOrderActivity), await confirmOrderEvent);
+            //     }
+            //     else
+            //     {
+            //         context.SetCustomStatus("No event received");
+            //     }
+            // } 
+
             while (order.State == OrderState.Creating)
             {
-                using var cts = new CancellationTokenSource();
-                
-                var assignCustomerEvent = context.WaitForExternalEventAsync<AssignCustomerEvent>(AssignCustomerEvent.Name, cts.Token);
-                var assignInvoiceAddressEvent = context.WaitForExternalEventAsync<AssignInvoiceAddressEvent>(AssignInvoiceAddressEvent.Name, cts.Token);
-                var assignDeliveryAddressEvent = context.WaitForExternalEventAsync<AssignDeliveryAddressEvent>(AssignDeliveryAddressEvent.Name, cts.Token);
-                var addItemEvent = context.WaitForExternalEventAsync<AddItemEvent>(AddItemEvent.Name, cts.Token);
-                var removeItemEvent = context.WaitForExternalEventAsync<RemoveItemEvent>(RemoveItemEvent.Name, cts.Token);
-                var confirmOrderEvent = context.WaitForExternalEventAsync<ConfirmOrderEvent>(ConfirmOrderEvent.Name, cts.Token);
-                var receivedEvent = await Task.WhenAny(assignCustomerEvent, assignInvoiceAddressEvent, assignDeliveryAddressEvent, addItemEvent, removeItemEvent, confirmOrderEvent);
-                await cts.CancelAsync();
-                if (receivedEvent == assignCustomerEvent)
+                var createOrderWrapperEvent = await context.WaitForExternalEventAsync<CreateOrderWrapperEvent>(CreateOrderWrapperEvent.Name);
+                if (createOrderWrapperEvent.SubEventType == CreateOrderWrapperEvent.CreateOrderSubEventType.AssignCustomerEvent)
                 {
-                    order = await context.CallActivityAsync<Order>(nameof(AssignCustomerActivity), await assignCustomerEvent);
+                    order = await context.CallActivityAsync<Order>(nameof(AssignCustomerActivity), createOrderWrapperEvent.AssignCustomerEvent);
                 }
-                else if (receivedEvent == assignInvoiceAddressEvent)
+                else if (createOrderWrapperEvent.SubEventType == CreateOrderWrapperEvent.CreateOrderSubEventType.AssignInvoiceAddressEvent)
                 {
-                    order = await context.CallActivityAsync<Order>(nameof(AssignInvoiceAddressActivity), await assignInvoiceAddressEvent);
+                    order = await context.CallActivityAsync<Order>(nameof(AssignInvoiceAddressActivity), createOrderWrapperEvent.AssignInvoiceAddressEvent);
                 }
-                else if (receivedEvent == assignDeliveryAddressEvent)
+                else if (createOrderWrapperEvent.SubEventType == CreateOrderWrapperEvent.CreateOrderSubEventType.AssignDeliveryAddressEvent)
                 {
-                    order = await context.CallActivityAsync<Order>(nameof(AssignDeliveryAddressActivity), await assignDeliveryAddressEvent);
+                    order = await context.CallActivityAsync<Order>(nameof(AssignDeliveryAddressActivity), createOrderWrapperEvent.AssignDeliveryAddressEvent);
                 }
-                else if (receivedEvent == addItemEvent)
+                else if (createOrderWrapperEvent.SubEventType == CreateOrderWrapperEvent.CreateOrderSubEventType.AddItemEvent)
                 {
-                    order = await context.CallActivityAsync<Order>(nameof(AddItemActivity), await addItemEvent);
+                    order = await context.CallActivityAsync<Order>(nameof(AddItemActivity), createOrderWrapperEvent.AddItemEvent);
                 }
-                else if (receivedEvent == removeItemEvent)
+                else if (createOrderWrapperEvent.SubEventType == CreateOrderWrapperEvent.CreateOrderSubEventType.RemoveItemEvent)
                 {
-                    order = await context.CallActivityAsync<Order>(nameof(RemoveItemActivity), await removeItemEvent);
+                    order = await context.CallActivityAsync<Order>(nameof(RemoveItemActivity), createOrderWrapperEvent.RemoveItemEvent);
                 }
-                else if (receivedEvent == confirmOrderEvent)
+                else if (createOrderWrapperEvent.SubEventType == CreateOrderWrapperEvent.CreateOrderSubEventType.ConfirmOrderEvent)
                 {
-                    order = await context.CallActivityAsync<Order>(nameof(ConfirmOrderActivity), await confirmOrderEvent);
+                    order = await context.CallActivityAsync<Order>(nameof(ConfirmOrderActivity), createOrderWrapperEvent.ConfirmOrderEvent);
                 }
                 else
                 {
                     context.SetCustomStatus("No event received");
                 }
-            } 
+            }
     
             // Wait for the payment confirmation.
             var confirmPaymentEvent = await context.WaitForExternalEventAsync<ConfirmPaymentEvent>(ConfirmPaymentEvent.Name);
@@ -82,7 +117,7 @@ public class OrderProcessingWorkflow : Workflow<Guid, Order>
         catch (Exception e)
         {
             context.SetCustomStatus($"Something went wrong: {e.Message}");
-            throw;
+            return order ?? new Order(){ Id = orderId};
         }
     }
 }

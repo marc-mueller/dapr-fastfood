@@ -33,32 +33,38 @@ public class OrderProcessingServiceWorkflow : IOrderProcessingServiceWorkflow
 
     public async Task AssignCustomer(Guid orderid, Customer customer)
     {
-        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), AssignCustomerEvent.Name, new AssignCustomerEvent(){ OrderId = orderid, Customer = customer });
+        // await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), AssignCustomerEvent.Name, new AssignCustomerEvent(){ OrderId = orderid, Customer = customer });
+        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), CreateOrderWrapperEvent.Name, new CreateOrderWrapperEvent(new AssignCustomerEvent(){ OrderId = orderid, Customer = customer }));
     }
 
     public async Task AssignInvoiceAddress(Guid orderid, Address address)
     {
-        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), AssignInvoiceAddressEvent.Name, new AssignInvoiceAddressEvent(){ OrderId = orderid, Address = address });
+        // await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), AssignInvoiceAddressEvent.Name, new AssignInvoiceAddressEvent(){ OrderId = orderid, Address = address });
+        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), CreateOrderWrapperEvent.Name, new CreateOrderWrapperEvent( new AssignInvoiceAddressEvent(){ OrderId = orderid, Address = address }));
     }
 
     public async Task AssignDeliveryAddress(Guid orderid, Address address)
     {
-        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), AssignDeliveryAddressEvent.Name, new AssignDeliveryAddressEvent(){ OrderId = orderid, Address = address });
+        // await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), AssignDeliveryAddressEvent.Name, new AssignDeliveryAddressEvent(){ OrderId = orderid, Address = address });
+        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), CreateOrderWrapperEvent.Name, new CreateOrderWrapperEvent( new AssignDeliveryAddressEvent(){ OrderId = orderid, Address = address }));
     }
 
     public async Task AddItem(Guid orderid, OrderItem item)
     {
-        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), AddItemEvent.Name, new AddItemEvent(){ OrderId = orderid, Item = item });
+        // await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), AddItemEvent.Name, new AddItemEvent(){ OrderId = orderid, Item = item });
+        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), CreateOrderWrapperEvent.Name, new CreateOrderWrapperEvent( new AddItemEvent(){ OrderId = orderid, Item = item }));
     }
 
     public async Task RemoveItem(Guid orderid, Guid itemId)
     {
-        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), RemoveItemEvent.Name, new RemoveItemEvent(){ OrderId = orderid, ItemId = itemId });
+        // await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), RemoveItemEvent.Name, new RemoveItemEvent(){ OrderId = orderid, ItemId = itemId });
+        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), CreateOrderWrapperEvent.Name, new CreateOrderWrapperEvent( new RemoveItemEvent(){ OrderId = orderid, ItemId = itemId }));
     }
 
     public async Task ConfirmOrder(Guid orderid)
     {
-        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), ConfirmOrderEvent.Name, new ConfirmOrderEvent(){ OrderId = orderid });
+        // await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), ConfirmOrderEvent.Name, new ConfirmOrderEvent(){ OrderId = orderid });
+        await _daprWorkflowClient.RaiseEventAsync(orderid.ToString(), CreateOrderWrapperEvent.Name, new CreateOrderWrapperEvent( new ConfirmOrderEvent(){ OrderId = orderid }));
     }
 
     public async Task ConfirmPayment(Guid orderid)
