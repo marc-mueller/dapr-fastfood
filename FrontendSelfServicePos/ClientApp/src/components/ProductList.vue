@@ -1,6 +1,6 @@
 ﻿<template>
-  <div class="flex p-5 space-x-5">
-    <div class="w-3/4 pr-6 overflow-y-auto">
+  <div class="flex overflow-hidden w-full">
+    <div class="p-6 overflow-y-auto">
       <!-- Added padding to the right to ensure spacing -->
       <div v-for="(products, category) in groupedProducts" :key="category" class="mb-8">
         <h2 class="text-2xl font-bold mb-4">{{ category }}</h2>
@@ -23,7 +23,7 @@
         </div>
       </div>
     </div>
-    <div class="w-1/4 fixed top-0 right-0 h-screen p-5 bg-gray-100 overflow-y-auto">
+    <div class="min-w-[25rem] w-[20%] flex-shrink-0 h-screen p-5 bg-gray-100 overflow-y-auto">
       <ShoppingCart />
     </div>
   </div>
