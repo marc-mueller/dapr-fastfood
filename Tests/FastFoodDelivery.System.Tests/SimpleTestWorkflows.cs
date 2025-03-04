@@ -85,7 +85,7 @@ namespace FastFoodDelivery.System.Tests
             } while (retry <= maxRetries && (state == null ||  state != targetState));
         }
         
-        private async Task<OrderDto> GetAndWaitUntilOrderHasItem(string orderServiceUrl, Guid orderId, Guid itemId, int maxRetries = 50, int delay = 500)
+        private async Task<OrderDto?> GetAndWaitUntilOrderHasItem(string orderServiceUrl, Guid orderId, Guid itemId, int maxRetries = 50, int delay = 500)
         {
             var retry = 0;
             OrderDto? order;
@@ -94,7 +94,7 @@ namespace FastFoodDelivery.System.Tests
                 await Task.Delay(delay);
                 order = await GetOrder(orderServiceUrl, orderId);
                 retry++;
-            } while (retry <= maxRetries && (order == null || !order.Items.Any(i => i.Id == itemId)));
+            } while (retry <= maxRetries && (order == null || order.Items == null  || !order.Items.Any(i => i.Id == itemId)));
 
             return order;
         }      
@@ -113,7 +113,7 @@ namespace FastFoodDelivery.System.Tests
 
         private class CreateOrderResult
         {
-            public string Message { get; set; }
+            public string? Message { get; set; }
             public Guid OrderId { get; set; }
         }
 

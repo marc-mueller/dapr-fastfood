@@ -31,4 +31,21 @@
       <Folder Include="clientapp\src\utils\" />
     </ItemGroup>
 
+   <ItemGroup>
+      <DistFiles Include="clientapp/dist\**\*.*" />
+    </ItemGroup>
+
+    <Target Name="BuildVueApp" BeforeTargets="Build" Condition="'$(Configuration)'=='Debug'">
+      <Exec Command="npm install" WorkingDirectory="clientapp" />
+      <Exec Command="npm run build" WorkingDirectory="clientapp" />
+      <Copy SourceFiles="@(DistFiles)"
+            DestinationFiles="@(DistFiles->'wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+    </Target>
+
+    <ItemGroup>
+      <Folder Include="wwwroot\" />
+    </ItemGroup>
+
+
+
 </Project>

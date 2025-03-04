@@ -23,7 +23,7 @@ public class OrderFinanceController: ControllerBase
     }
     
     [HttpPost("closeOrder")]
-    public ActionResult NewOrder([FromBody] Guid orderId)
+    public ActionResult CloseOrder([FromBody] Guid orderId)
     {
         _logger.LogInformation("Order closed in finance system: {OrderId}", orderId);
         

@@ -193,6 +193,11 @@
       - DAPR_GRPC_PORT=50001
     networks:
       - fastfoodnet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontendselfservicepos.rule=Host(`pos.localtest.me`)"
+      - "traefik.http.routers.frontendselfservicepos.entrypoints=websecure"
+      - "traefik.http.services.frontendselfservicepos.loadbalancer.server.port=8080"
 
   frontendselfservicepos-dapr:
     container_name: frontendselfservicepos-dapr
@@ -237,7 +242,12 @@
       - DAPR_HTTP_PORT=3500
       - DAPR_GRPC_PORT=50001
     networks:
-      - fastfoodnet  
+      - fastfoodnet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontendkitchenmonitor.rule=Host(`kitchen.localtest.me`)"
+      - "traefik.http.routers.frontendkitchenmonitor.entrypoints=websecure"
+      - "traefik.http.services.frontendkitchenmonitor.loadbalancer.server.port=8080"  
   
   frontendkitchenmonitor-dapr:
     container_name: frontendkitchenmonitor-dapr
@@ -283,6 +293,11 @@
       - DAPR_GRPC_PORT=50001
     networks:
       - fastfoodnet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontendcustomerorderstatus.rule=Host(`orderstatus.localtest.me`)"
+      - "traefik.http.routers.frontendcustomerorderstatus.entrypoints=websecure"
+      - "traefik.http.services.frontendcustomerorderstatus.loadbalancer.server.port=8080"
   
   frontendcustomerorderstatus-dapr:
     container_name: frontendcustomerorderstatus-dapr
@@ -405,5 +420,40 @@
     networks:
       - fastfoodnet
 
+  proxy:
+    container_name: proxy
+    image: traefik:v3.1
+    command:
+      - "--api.insecure=true" # Traefik dashboard (only for dev)
+      - "--log.level=INFO"
+      - "--providers.docker=true"
+      - "--providers.docker.network=fastfoodnet"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/config/traefik.yml"
+      - "--entrypoints.web.address=:80"
+      # - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      # - "--entryPoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.asDefault=true" 
+      - "--entrypoints.websecure.http.tls=true"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+      - "--accesslog.format=json"
+    ports:
+      - "80:80"   # HTTP
+      - "443:443" # HTTPS
+      - "8081:8080" # Traefik Dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./DevInfrastructure/Proxy/certs:/certs" # Mounting the directory containing the self-signed certs
+      - "./DevInfrastructure/Proxy/traefikconfig:/config"
+    networks:
+      fastfoodnet:
+        aliases: 
+          - pos.localtest.me
+          - kitchen.localtest.me
+          - orderstatus.localtest.me
+
 networks:
   fastfoodnet:
+    name: fastfoodnet

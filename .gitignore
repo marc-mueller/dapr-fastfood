@@ -330,3 +330,11 @@ ASALocalRun/
 .mfractor/
 
 dapr/data
+
+wwwroot
+
+trivy_*.json
+
+.DS_Store
+
+**/certs/*.pem
