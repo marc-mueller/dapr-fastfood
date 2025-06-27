@@ -21,9 +21,8 @@ steps:
         npm install -g monotag
       displayName: 'Install monotag'
 
-  - script: |
+  - bash: |
       set -euo pipefail
-      set -x
       # Compose path args for monotag
       PATH_ARGS=""
       for p in ${{ join(' ', parameters.servicePaths) }}; do
