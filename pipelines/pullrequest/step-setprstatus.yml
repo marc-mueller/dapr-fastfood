@@ -1,0 +1,32 @@
+parameters:
+  - name: contextName     # e.g. "deploy-devfunapi"
+    type: string
+  - name: state           # "pending", "succeeded", "failed", etc.
+    type: string
+  - name: description     # e.g. "Deploy DevFun API"
+    type: string
+  - name: targetUrl       # e.g. "https://…/logs/123"
+    type: string
+
+steps:
+- task: Bash@3
+  displayName: 'Set PR status: ${{ parameters.contextName }} → ${{ parameters.state }}'
+  env:
+    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+  inputs:
+    targetType: 'inline'
+    script: |
+      baseUrl="${SYSTEM_COLLECTIONURI}${SYSTEM_TEAMPROJECT}"
+      statusUrl="$baseUrl/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${SYSTEM_PULLREQUEST_PULLREQUESTID}/statuses?api-version=6.0"
+      # Build JSON payload
+      payload=$(jq -n \
+        --arg state "${{ parameters.state }}" \
+        --arg descr "${{ parameters.description }}" \
+        --arg name  "${{ parameters.contextName }}" \
+        --arg url   "${{ parameters.targetUrl }}" \
+        '{state: $state, description: $descr, targetUrl: $url, context: {name: $name}}')
+      # POST (creates or updates the named context)
+      curl -s -H "Content-Type: application/json" \
+           -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
+           -d "$payload" \
+           "$statusUrl"

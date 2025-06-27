@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Dapr.Actors" Version="1.15.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\services\finance\FinanceService.Common\FinanceService.Common.csproj" />
+      <ProjectReference Include="..\OrderService.Common\OrderService.Common.csproj" />
+    </ItemGroup>
+
+</Project>

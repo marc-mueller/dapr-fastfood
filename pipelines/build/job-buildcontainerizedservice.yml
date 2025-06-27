@@ -1,0 +1,84 @@
+parameters:
+  - name: displayName
+    type: string
+    default: 'Build and Publish Containerized Service'
+  - name: dockerFile
+    type: string
+  - name: dockerRepositoryName
+    type: string
+  - name: chartPath
+    type: string
+  - name: artifactName
+    type: string
+  - name: azureContainerRegistryServiceConnection
+    type: string
+  - name: netCoreAspNetVersion
+    type: string
+  - name: netCoreSdkVersion
+    type: string
+  - name: helmVersion
+    type: string
+  - name: artifactStagingDirectory
+    type: string
+  - name: buildContext
+    type: string
+  - name: buildId
+    type: string
+  - name: buildNumber
+    type: string
+  - name: servicePaths
+    type: object
+  - name: serviceTagPrefix
+    type: string
+  - name: installMonotag
+    type: boolean
+    default: true
+  - name: updateBuildNumber
+    type: boolean
+    default: true
+  - name: nugetFeeds
+    type: object
+    default: []
+  - name: publishArtifacts
+    type: object
+    default: []
+  - name: dockerArguments
+    type: string
+    default: ''
+
+jobs:
+  - job: build
+    displayName: ${{ parameters.displayName }}
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - checkout: self
+        fetchDepth: 0
+        persistCredentials: true
+        clean: true
+        lfs: true
+      - template: ../general/step-buildversion.yml
+        parameters:
+          installMonotag: ${{ parameters.installMonotag }}
+          updateBuildNumber: ${{ parameters.updateBuildNumber }}
+          servicePaths: ${{ parameters.servicePaths }}
+          serviceTagPrefix: ${{ parameters.serviceTagPrefix }}
+      - template: ../build/step-buildandpublishdockerimage.yml
+        parameters:
+          azureContainerRegistryServiceConnection: ${{ parameters.azureContainerRegistryServiceConnection }}
+          dockerRepositoryName: ${{ parameters.dockerRepositoryName }}
+          dockerFile: ${{ parameters.dockerFile }}
+          dockerArguments: ${{ parameters.dockerArguments }}
+          buildId: ${{ parameters.buildId }}
+          buildNumber: ${{ parameters.buildNumber }}
+          buildContext: ${{ parameters.buildContext }}
+          nugetFeeds: ${{ parameters.nugetFeeds }}
+          publishArtifacts: ${{ parameters.publishArtifacts }}
+          netCoreAspNetVersion: ${{ parameters.netCoreAspNetVersion }}
+          netCoreSdkVersion: ${{ parameters.netCoreSdkVersion }}
+      - template: ../build/step-buildhelmpackage.yml
+        parameters:
+          helmVersion: ${{ parameters.helmVersion }}
+          artifactStagingDirectory: ${{ parameters.artifactStagingDirectory }}
+          artifactName: ${{ parameters.artifactName }}
+          chartPath: ${{ parameters.chartPath }}

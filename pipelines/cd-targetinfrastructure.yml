@@ -1,0 +1,94 @@
+name: cd-targetinfrastructure
+trigger: none
+resources:
+  pipelines:
+  - pipeline: CIBuild
+    source: ci-targetinfrastructure
+    trigger:
+      branches:
+        include:
+        - master
+        - feature/*
+        - topic/*
+        - fix/*
+        - hotfix/*
+        - pull/*
+        - refs/pull/*
+  # containers:
+  # - container: worker
+  #   image: 4taksdemoacr.azurecr.io/linuxworker:latest
+  #   endpoint: 4taksDemoAcr
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - template: config/var-commonvariables.yml
+  - template: config/var-commonvariables-release.yml
+  - template: config/var-targetinfrastructure.yml
+  - group: fastfood-releasesecrets  
+
+stages:
+  - stage: Staging
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main'))
+    variables:
+      - name: stagename
+        value: staging
+      - name: namespace
+        value: $(stagename)
+    jobs:
+      - template: deploy/job-deployservicetok8s.yml
+        parameters:
+          environment: 'fastfood-$(stagename)'
+          namespace: '$(namespace)'
+          valuesFile: '$(helmValuesOverwritesFile)'
+          artifactName: '$(pipelineArtifactName)'
+          chartPackage: '$(helmChartArtifactDownloadPath)'
+          kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
+          updateBuildNumber: true
+          sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+          tokenizerSecrets:
+            - redisPassword
+
+  - stage: Production
+    dependsOn: Staging
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main'))
+    variables:
+      - name: stagename
+        value: prod
+      - name: namespace
+        value: $(stagename)
+    jobs:
+      - template: deploy/job-deployservicetok8s.yml
+        parameters:
+          environment: 'fastfood-$(stagename)'
+          namespace: '$(namespace)'
+          valuesFile: '$(helmValuesOverwritesFile)'
+          artifactName: '$(pipelineArtifactName)'
+          chartPackage: '$(helmChartArtifactDownloadPath)'
+          kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
+          updateBuildNumber: true
+          sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+          tokenizerSecrets:
+            - redisPassword
+
+  - stage: PullRequest
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+    variables:
+      - name: stagename
+        value: staging
+      - name: namespace
+        value: $(stagename)-$(System.PullRequest.PullRequestId)
+    jobs:
+      - template: deploy/job-deployservicetok8s.yml
+        parameters:
+          environment: 'fastfood-$(stagename)'
+          namespace: '$(namespace)'
+          valuesFile: '$(helmValuesOverwritesFile)'
+          artifactName: '$(pipelineArtifactName)'
+          chartPackage: '$(helmChartArtifactDownloadPath)'
+          kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
+          updateBuildNumber: true
+          sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+          tokenizerSecrets:
+            - redisPassword

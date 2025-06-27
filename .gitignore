@@ -329,7 +329,7 @@ ASALocalRun/
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
 
-dapr/data
+infrastructure-dev/dapr/data
 
 wwwroot
 

@@ -1,0 +1,7 @@
+dapr:
+  redisHost: ""
+  redisPassword: ""
+  redisDB: 0
+
+demosecret:
+  samplevalue: "Hello World from k8s"

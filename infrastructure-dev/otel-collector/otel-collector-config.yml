@@ -1,0 +1,49 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+exporters:
+#  debug:
+#    verbosity: detailed
+  otlphttp/prometheus:
+    endpoint: 'http://prometheus:9090/api/v1/otlp'
+    tls:
+      insecure: true
+    headers:
+      Content-Type: "application/x-protobuf"
+  otlp/jaeger:
+    endpoint: "jaeger:4317"
+    tls:
+      insecure: true
+  # loki:
+  #   endpoint: http://loki:3100/loki/api/v1/push
+  otlphttp:
+      endpoint: "http://loki:3100/otlp"
+      # Add Loki resource attribute to label mapping configuration
+      # This tells Loki which resource attributes should be indexed as labels
+      # headers:
+      #   "X-Scope-OrgID": "1"
+      #   # Tell Loki to add these resource attributes as labels
+      #   "X-Loki-Labels": "app,service_name,k8s.namespace.name,k8s.pod.name"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/prometheus]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp]

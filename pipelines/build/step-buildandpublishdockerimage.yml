@@ -1,0 +1,161 @@
+parameters:
+- name: buildContext
+  type: string
+  default: 
+- name: configurationContext
+  type: string
+  default: $(Build.SourcesDirectory)
+- name: azureContainerRegistryServiceConnection
+  type: string
+  default: 
+- name: dockerRepositoryName
+  type: string
+  default:
+- name: dockerFile
+  type: string
+  default: 
+- name: dockerArguments
+  type: string
+  default:
+- name: buildId
+  type: string
+  default: undefined
+- name: buildNumber
+  type: string
+  default: 
+- name: nugetFeeds
+  type: object
+  default: []
+  # Each item: { feedName: string, username: string, password: string }
+  # Example:
+  #   nugetFeeds:
+  #     - feedName: "Products"
+  #       username: "PAT"
+  #       password: "$(patProductsFeed)"
+  #     - feedName: "DemoFeed"
+  #       username: "myuser"
+  #       password: "$(myFeedPassword)"
+- name: publishArtifacts
+  type: object
+  default: []
+  # Each item: { dockerfileTarget: string, imageLabel: string, directoryToCopy: string, artifactName: string, publishType: string }
+  # publishType: 'testResults' for test results (publishes test results and code coverage), any other value (e.g. 'artifact') for generic build artifacts.
+  # Example:
+  #   publishArtifacts:
+  #     - dockerfileTarget: "test"
+  #       imageLabel: "testresults"
+  #       directoryToCopy: "/testresults"
+  #       artifactName: "testresults"
+  #       publishType: "testResults"
+  #     - dockerfileTarget: "client"
+  #       imageLabel: "client"
+  #       directoryToCopy: "/nupkgs"
+  #       artifactName: "clients"
+  #       publishType: "artifact"
+- name: netCoreAspNetVersion
+  type: string
+  default: 
+- name: netCoreSdkVersion
+  type: string
+  default: 
+
+steps:
+- task: CopyFiles@2
+  displayName: "Copy props from repo root to docker context root"
+  inputs:
+    Contents: |
+      *.props
+      *.ruleset
+      nuget.config
+    TargetFolder: ${{ parameters.buildContext }}
+    SourceFolder: ${{ parameters.configurationContext }}
+
+- ${{ if gt(length(parameters.nugetFeeds), 0) }}:
+  - pwsh: |
+      $nugetConfig = Get-Content -Path "$(Build.SourcesDirectory)/nuget.config" -Raw
+      $credentialBlock = "<packageSourceCredentials>"
+      foreach ($feed in @(${ { parameters.nugetFeeds } })) {
+        $credentialBlock += "<${feed.feedName}>"
+        $credentialBlock += "<add key=\"Username\" value=\"${feed.username}\" />"
+        $credentialBlock += "<add key=\"ClearTextPassword\" value=\"${feed.password}\" />"
+        $credentialBlock += "</${feed.feedName}>"
+      }
+      $credentialBlock += "</packageSourceCredentials>"
+      $nugetConfig = $nugetConfig -Replace '</configuration>', "$credentialBlock`n</configuration>"
+      $nugetConfig | Out-File -FilePath "$(Agent.TempDirectory)/nuget.config" -NoNewline -Encoding UTF8
+    displayName: 'Prepare nuget.config Secret File'
+
+- ${{ each artifact in parameters.publishArtifacts }}:
+  - task: Docker@2
+    displayName: 'Build Docker Image (${{ artifact.dockerfileTarget }})'
+    inputs:
+      containerRegistry: '${{ parameters.azureContainerRegistryServiceConnection }}'
+      repository: '${{ parameters.dockerRepositoryName }}-${{ artifact.dockerfileTarget }}'
+      command: 'build'
+      Dockerfile: '${{ parameters.dockerFile }}'
+      buildContext: '${{ parameters.buildContext }}'
+      tags: |
+        ${{ lower(parameters.buildNumber) }}
+        latest
+      ${{ if gt(length(parameters.nugetFeeds), 0) }}:
+        arguments: --secret id=nugetconfig,src=$(Agent.TempDirectory)/nuget.config ${{ parameters.dockerArguments }} --build-arg BUILDID=${{ parameters.buildId }} --target ${{ artifact.dockerfileTarget }} --progress=plain
+      ${{ if eq(length(parameters.nugetFeeds), 0) }}:
+        arguments: ${{ parameters.dockerArguments }} --build-arg BUILDID=${{ parameters.buildId }} --target ${{ artifact.dockerfileTarget }} --progress=plain
+
+  - pwsh: |
+      Write-Host "Create docker container by filter: label=${{ artifact.imageLabel }}=${{ parameters.buildId }}"
+      $id=docker images --filter "label=${{ artifact.imageLabel }}=${{ parameters.buildId }}" -q | Select-Object -First 1
+      Write-host "Image id: $($id)"
+      docker create --name ${{ artifact.artifactName }}container-${{ parameters.buildId }} $id
+      docker cp ${{ artifact.artifactName }}container-${{ parameters.buildId }}:${{ artifact.directoryToCopy }} $(Build.ArtifactStagingDirectory)/${{ artifact.artifactName }}
+      docker rm ${{ artifact.artifactName }}container-${{ parameters.buildId }}
+    displayName: 'Copy ${{ artifact.artifactName }} from container'
+
+  - ${{ if eq(artifact.publishType, 'testResults') }}:
+    - task: PublishTestResults@2
+      displayName: 'Publish test results'
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '**/*.trx'
+        searchFolder: '$(Build.ArtifactStagingDirectory)/${{ artifact.artifactName }}'
+        testRunTitle: 'Unit Tests ${{ parameters.buildNumber }}'
+
+    - task: PublishCodeCoverageResults@1
+      displayName: 'Publish code coverage results'
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '$(Build.ArtifactStagingDirectory)/${{ artifact.artifactName }}/coverage/coverage.json'
+        reportDirectory: '$(Build.ArtifactStagingDirectory)/${{ artifact.artifactName }}/coverage/reports'
+
+  - ${{ if ne(artifact.publishType, 'testResults') }}:
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish ${{ artifact.artifactName }}'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/${{ artifact.artifactName }}'
+        ArtifactName: '${{ artifact.artifactName }}'
+
+- task: Docker@2
+  displayName: 'Build Docker Image (final)'
+  inputs:
+    containerRegistry: '${{ parameters.azureContainerRegistryServiceConnection }}'
+    repository: '${{ parameters.dockerRepositoryName }}'
+    command: 'build'
+    Dockerfile: '${{ parameters.dockerFile }}'
+    buildContext: '${{ parameters.buildContext }}'
+    tags: |
+      ${{ lower(parameters.buildNumber) }}
+      latest
+    ${{ if gt(length(parameters.nugetFeeds), 0) }}:
+      arguments: --secret id=nugetconfig,src=$(Agent.TempDirectory)/nuget.config ${{ parameters.dockerArguments }} --build-arg BUILDID=${{ parameters.buildId }} --target final --progress=plain
+    ${{ if eq(length(parameters.nugetFeeds), 0) }}:
+      arguments: ${{ parameters.dockerArguments }} --build-arg BUILDID=${{ parameters.buildId }} --target final --progress=plain
+
+- task: Docker@2
+  displayName: 'Push the docker image to the registry'
+  inputs:
+    containerRegistry: '${{ parameters.azureContainerRegistryServiceConnection }}'
+    repository: '${{ parameters.dockerRepositoryName }}'
+    command: 'push'
+    tags: |
+      ${{ lower(parameters.buildNumber) }}
+      latest

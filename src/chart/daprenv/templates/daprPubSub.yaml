@@ -1,0 +1,27 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: {{ .Values.dapr.redisHost | quote }}
+  - name: redisPassword
+    secretKeyRef:
+      name: {{ template "daprenv.fullname" . }}-dapr-secrets
+      key: redis-password
+  - name: redisDB
+    value: {{ .Values.dapr.redisDB | default 0  | quote }}
+  - name: maxLenApprox
+    value: {{ .Values.dapr.maxLenApprox | default 100  | quote }}
+
+scopes:
+  - orderservice
+  - kitchenservice
+  - financeservice
+  - orderserviceactors
+  - frontendselfservicepos
+  - frontendkitchenmonitor
+  - frontendcustomerorderstatus

@@ -1,0 +1,37 @@
+parameters:
+- name: artifactStagingDirectory
+  type: string
+  default:
+- name: artifactName
+  type: string
+  default: 
+- name: helmVersion
+  type: string
+  default: 
+- name: chartPath
+  type: string
+  default: 
+- name: chartVersion
+  type: string
+  default: '$(Build.BuildNumber)'
+
+steps:
+- task: HelmInstaller@0
+  displayName: 'Install Helm ${{ parameters.helmVersion }}'
+  inputs:
+    helmVersion: '${{ parameters.helmVersion }}'
+    checkLatestHelmVersion: false
+    installKubectl: true
+
+- task: HelmDeploy@0
+  displayName: 'helm package'
+  inputs:
+    command: package
+    chartPath: ${{ parameters.chartPath }}
+    destination: '${{ parameters.artifactStagingDirectory }}/${{ parameters.artifactName }}'
+    chartVersion: '${{ parameters.chartVersion }}'
+    save: false
+    
+- publish: '${{ parameters.artifactStagingDirectory }}/${{ parameters.artifactName }}'
+  artifact: '${{ parameters.artifactName }}'
+  displayName: 'Publish Artifact: ${{ parameters.artifactName }}'

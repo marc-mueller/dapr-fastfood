@@ -1,0 +1,18 @@
+image:
+  repository: __azureContainerRegistry__/frontendkitchenmonitor
+  tag: __artifactVersion__
+
+ingress:
+  enabled: enabled
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cluster-staging
+  hosts:
+    - host: kitchenmonitor.fastfood.__namespace__.aksdemo.4tecture.ch
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: 
+    - secretName: frontendkitchenmonitor-tls
+      hosts:
+        - kitchenmonitor.fastfood.__namespace__.aksdemo.4tecture.ch

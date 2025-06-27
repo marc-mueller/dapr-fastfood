@@ -1,0 +1,4 @@
+dapr:
+  redisHost: "redis-master.redis:6379"
+  redisPassword: "__redisPassword__"
+  redisDB: 1

@@ -1,0 +1,44 @@
+parameters:
+  - name: tagFormat
+    type: string
+    default: "v$(Build.BuildNumber)"
+  - name: tagDescription
+    type: string
+    default: "Auto-generated versioning tag by Azure Pipelines"
+  - name: gitUserName
+    type: string
+    default: ""
+  - name: gitUserEmail
+    type: string
+    default: ""
+
+steps:
+  - checkout: self
+    persistCredentials: true
+    fetchTags: true
+
+  - task: Bash@3
+    displayName: "Create and Push Tag"
+    inputs:
+      targetType: "inline"
+      script: |
+        # Default to last commit's user if parameters are not provided
+        if [ -z "${{ parameters.gitUserName }}" ]; then
+          export GIT_USER_NAME=$(git log -1 --format='%an')
+        else
+          export GIT_USER_NAME="${{ parameters.gitUserName }}"
+        fi
+
+        if [ -z "${{ parameters.gitUserEmail }}" ]; then
+          export GIT_USER_EMAIL=$(git log -1 --format='%ae')
+        else
+          export GIT_USER_EMAIL="${{ parameters.gitUserEmail }}"
+        fi
+
+        # Set Git configuration
+        git config --global user.name "$GIT_USER_NAME"
+        git config --global user.email "$GIT_USER_EMAIL"
+
+        # Create and push tag
+        git tag -a "${{ parameters.tagFormat }}" -m "${{ parameters.tagDescription }}"
+        git push origin "${{ parameters.tagFormat }}"

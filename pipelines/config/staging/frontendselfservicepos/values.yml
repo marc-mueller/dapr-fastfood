@@ -1,0 +1,18 @@
+image:
+  repository: __azureContainerRegistry__/frontendselfservicepos
+  tag: __artifactVersion__
+
+ingress:
+  enabled: enabled
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cluster
+  hosts:
+    - host: selfservicepos.fastfood.staging.aksdemo.4tecture.ch
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: 
+    - secretName: frontendselfservicepos-tls
+      hosts:
+        - selfservicepos.fastfood.staging.aksdemo.4tecture.ch

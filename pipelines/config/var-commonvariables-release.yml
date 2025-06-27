@@ -1,0 +1,13 @@
+variables:
+- name: kubernetesDeploymentServiceConnection
+  value: k8sdemo-deployment
+- name: releaseRevision
+  value: $[counter(variables['RESOURCES.PIPELINE.CIBUILD.RUNNAME'], 1)]
+- name: releaseBuildNumber
+  value: $[format('{0}-{1}', variables['RESOURCES.PIPELINE.CIBUILD.RUNNAME'], variables['releaseRevision'])]
+- name: artifactVersion
+  value: $(RESOURCES.PIPELINE.CIBUILD.RUNNAME)
+- name: helmChartArtifactDownloadPath
+  value: '$(Pipeline.Workspace)/CIBuild/$(pipelineArtifactName)/$(serviceName)-$(artifactVersion).tgz'
+- name: releaseSparseCheckoutDirectories
+  value: 'pipelines/config/$(stagename)/$(folderNameComponent)'

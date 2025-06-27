@@ -1,0 +1,38 @@
+name: ci-targetinfrastructure
+
+trigger:
+  branches:
+    include:
+      - main
+      - release/*
+  paths:
+    include:
+      - src/chart/daprenv/**
+
+variables:
+  - template: config/var-commonvariables.yml
+  - template: config/var-targetinfrastructure.yml
+
+jobs:
+- job: builddaprenv
+  displayName: "Build Dapr Environment Helm Chart"
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+    - checkout: self
+      fetchDepth: 0
+      persistCredentials: true
+      clean: true
+    - template: general/step-buildversion.yml
+      parameters:
+        installMonotag: true
+        updateBuildNumber: true
+        servicePaths:
+          - 'src/chart/daprenv'
+        serviceTagPrefix: 'daprenv'
+    - template: build/step-buildhelmpackage.yml
+      parameters:
+        helmVersion: $(helmVersion)
+        artifactStagingDirectory: $(Build.ArtifactStagingDirectory)
+        artifactName: $(pipelineArtifactName)
+        chartPath: $(Build.SourcesDirectory)/src/chart/daprenv

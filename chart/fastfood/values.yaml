@@ -1,6 +1,0 @@
-dapr:
-  redisHost: ""
-  redisPassword: ""
-
-demosecret:
-  samplevalue: "Hello World from k8s"

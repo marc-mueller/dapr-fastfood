@@ -1,0 +1,77 @@
+parameters:
+  - name: installMonotag
+    type: boolean
+    default: true
+  - name: updateBuildNumber
+    type: boolean
+    default: true
+  - name: servicePaths
+    type: object
+    default: [ 'services/ServiceA' ]
+  - name: serviceTagPrefix
+    type: string
+    default: 'ServiceA'
+  - name: versionTaskName
+    type: string
+    default: 'builldVersioning'
+
+steps:
+  - ${{ if parameters.installMonotag }}:
+    - script: |
+        npm install -g monotag
+      displayName: 'Install monotag'
+
+  - script: |
+      set -euo pipefail
+      set -x
+      # Compose path args for monotag
+      PATH_ARGS=""
+      for p in ${{ join(' ', parameters.servicePaths) }}; do
+        PATH_ARGS="$PATH_ARGS --path $p"
+      done
+      # Find last release tag for this service (no prerelease in tag)
+      LAST_TAG=$(git tag --list "${{ parameters.serviceTagPrefix }}/*" --sort=-v:refname | grep -v '-' | head -n1 || true)
+      # Try monotag for base version
+      BASE_VERSION=$(monotag tag-git $PATH_ARGS --semver-level auto --prerelease=false | head -n1 || true)
+      # Remove any prefix and slash from BASE_VERSION (e.g., Finance/0.0.1 -> 0.0.1)
+      BASE_VERSION=$(echo "$BASE_VERSION" | sed -E 's/^[^/]+\///')
+      # Fallback if monotag fails or outputs 'No changes detected'
+      if [[ "$BASE_VERSION" == Error:* || -z "$BASE_VERSION" || "$BASE_VERSION" == *"No changes detected"* ]]; then
+        echo "Monotag failed or no changes detected: $BASE_VERSION"
+        # Fallback: increment patch version of last tag
+        if [[ -n "$LAST_TAG" ]]; then
+          LAST_SEMVER=$(echo "$LAST_TAG" | sed -E 's/^[^/]+\///')
+          IFS=. read -r MAJOR MINOR PATCH <<< "$LAST_SEMVER"
+          PATCH=$((PATCH + 1))
+          BASE_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "Fallback base version: $BASE_VERSION"
+        else
+          BASE_VERSION="0.0.1"
+          echo "No last tag found, fallback base version: $BASE_VERSION"
+        fi
+      fi
+      # Calculate prerelease counter (commits since branch diverged from main)
+      MERGE_BASE=$(git merge-base HEAD origin/main)
+      PR_COUNT=$(git rev-list --count "$MERGE_BASE"..HEAD -- ${{ join(' ', parameters.servicePaths) }})
+      # Ensure counter is never negative
+      if [[ "$PR_COUNT" -le 0 ]]; then
+        COUNTER="000"
+      else
+        COUNTER=$(printf "%03d" $((PR_COUNT - 1)))
+      fi
+      # Use branch name as prerelease id
+      BRANCH_ID=$(echo "$BUILD_SOURCEBRANCHNAME" | tr '[:upper:]' '[:lower:]' | tr -c '[:alnum:]' '-' | sed -E 's/-+/-/g; s/^-|-$//g' | cut -c1-8)
+      # Only add prerelease for non-main and non-release/* branches
+      if [[ "$BRANCH_ID" == "main" || "$BRANCH_ID" == release* ]]; then
+        VERSION="$BASE_VERSION"
+      else
+        VERSION="$BASE_VERSION-$BRANCH_ID-$COUNTER"
+      fi
+      echo "##vso[task.setvariable variable=Version;isOutput=true]$VERSION"
+      echo "Calculated version: $VERSION"
+      # Optionally update build number
+      if [ "${{ parameters.updateBuildNumber }}" = "True" ]; then
+        echo "##vso[build.updatebuildnumber]$VERSION"
+      fi
+    displayName: 'Calculate service version'
+    name: ${{ parameters.versionTaskName }}

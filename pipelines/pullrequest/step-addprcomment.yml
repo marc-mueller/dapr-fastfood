@@ -1,0 +1,40 @@
+parameters:
+  - name: commentContent    # your markdown/text
+    type: string
+  - name: skipIfExists      # true | false
+    type: boolean
+  - name: commentMarker     # unique substring to detect reruns
+    type: string
+
+steps:
+- task: Bash@3
+  displayName: 'Post PR comment (skipIfExists=${{ parameters.skipIfExists }})'
+  env:
+    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+  inputs:
+    targetType: 'inline'
+    script: |
+      baseUrl="${SYSTEM_COLLECTIONURI}${SYSTEM_TEAMPROJECT}"
+      threadsUrl="$baseUrl/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${SYSTEM_PULLREQUEST_PULLREQUESTID}/threads?api-version=6.0"
+      # Fetch existing threads
+      threads=$(curl -s -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$threadsUrl")
+      exists=false
+      if [ "${{ parameters.skipIfExists }}" = "true" ]; then
+        # scan each comment for the marker
+        for content in $(echo "$threads" | jq -r '.value[].comments[].content'); do
+          if echo "$content" | grep -F "${{ parameters.commentMarker }}" >/dev/null; then
+            exists=true; break
+          fi
+        done
+      fi
+      if [ "$exists" = "true" ]; then
+        echo "⚠️ Comment with marker found—skipping."
+        exit 0
+      fi
+      # Build and post new thread
+      payload=$(jq -n --arg text "${{ parameters.commentContent }}" \
+        '{comments:[{parentCommentId:0,content:$text,commentType:1}],status:"active"}')
+      curl -s -H "Content-Type: application/json" \
+           -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
+           -d "$payload" \
+           "$threadsUrl"

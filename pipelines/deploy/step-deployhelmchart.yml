@@ -1,0 +1,33 @@
+parameters:
+  - name: kubernetesDeploymentServiceConnection
+    type: string
+  - name: clusterNamespace
+    type: string
+  - name: chartPath
+    type: string
+  - name: releaseName
+    type: string
+  - name: releaseValuesFile
+    type: string
+  - name: tokenizerSecrets
+    type: object
+    default: []
+steps:
+  - template: ../general/step-tokenizer.yml
+    parameters:
+      filePattern: '${{ parameters.releaseValuesFile }}'
+      secrets: ${{ parameters.tokenizerSecrets }}
+  - task: HelmDeploy@0
+    displayName: 'Helm upgrade release'
+    name: helmdeployment
+    inputs:
+      connectionType: 'Kubernetes Service Connection'
+      kubernetesServiceConnection: ${{ parameters.kubernetesDeploymentServiceConnection }}
+      useClusterAdmin: true
+      namespace: ${{ parameters.clusterNamespace }}
+      command: 'upgrade'
+      chartType: 'FilePath'
+      chartPath: ${{ parameters.chartPath }}
+      releaseName: ${{ parameters.releaseName }}
+      valueFile: ${{ parameters.releaseValuesFile }}
+  

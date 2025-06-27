@@ -1,0 +1,56 @@
+# Azure Pipelines steps template for tokenizing files
+parameters:
+  # filePattern: Glob pattern to match files for tokenization.
+  # Examples:
+  #   - 'config.txt'                # Single file in current directory
+  #   - '*.config'                  # All .config files in current directory
+  #   - 'configs/*.json'            # All .json files in the 'configs' directory
+  #   - '**/*.env'                  # All .env files recursively in all subdirectories
+  #   - 'src/settings/*.yml'        # All .yml files in 'src/settings' directory
+  - name: filePattern
+    type: string
+    default: ''
+  # secrets: List of secret variable names to be injected as environment variables for tokenization.
+  # Example usage in pipeline:
+  #   secrets:
+  #     - MY_SECRET
+  #     - ANOTHER_SECRET
+  - name: secrets
+    type: object
+    default: []
+
+steps:
+  - script: |
+      echo "Tokenizing files matching pattern: ${{ parameters.filePattern }}"
+      if [ -f "${{ parameters.filePattern }}" ]; then
+        files="${{ parameters.filePattern }}"
+      else
+        files=$(find . -type f -name "${{ parameters.filePattern }}")
+      fi
+      echo "Files to process: $files"
+      for file in $files; do
+        echo "Processing $file"
+        # Extract all tokens in the form __TOKENNAME__
+        tokens=$(grep -oE '__[a-zA-Z0-9_]+__' "$file" | sort | uniq)
+        for token in $tokens; do
+          # Remove leading and trailing underscores to get the variable name
+          varname=$(echo $token | sed 's/^__//;s/__$//')
+          value=$(printenv "$varname")
+          if [ -z "$value" ]; then
+            # Try uppercase variant (Azure Pipelines exposes env vars as uppercase)
+            value=$(printenv "$(echo $varname | tr '[:lower:]' '[:upper:]')")
+          fi
+          if [ -n "$value" ]; then
+            echo "Replacing $token with value of $varname: $value"
+            # Use perl for in-place replacement (handles special chars)
+            perl -pi -e "s/$token/$value/g" "$file"
+          else
+            echo "No environment variable found for $token ($varname), skipping."
+          fi
+        done
+      done
+    displayName: Tokenize files
+    env:
+      ${{ if parameters.secrets }}:
+        ${{ each secret in parameters.secrets }}:
+          ${{ secret }}: $(${{ secret }})

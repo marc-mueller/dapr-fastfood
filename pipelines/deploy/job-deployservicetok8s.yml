@@ -1,0 +1,48 @@
+parameters:
+  - name: environment
+    type: string
+  - name: namespace
+    type: string
+  - name: valuesFile
+    type: string # now expects full path
+  - name: artifactName
+    type: string
+  - name: chartPackage
+    type: string
+  - name: kubernetesDeploymentServiceConnection
+    type: string
+  - name: updateBuildNumber
+    type: boolean
+    default: false
+  - name: sparseCheckoutDirectories
+    type: string
+  - name: tokenizerSecrets
+    type: object
+    default: []
+  - name: displayName
+    type: string
+    default: 'Deploy Service to Kubernetes'
+
+jobs:
+  - deployment: deploy
+    displayName: "${{ parameters.displayName }}"
+    environment: ${{ parameters.environment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - ${{ if eq(parameters.updateBuildNumber, true) }}:
+                - script: |
+                    echo "##vso[build.updatebuildnumber]$(releaseBuildNumber)"
+                  displayName: 'Update Release Build Number'
+            - checkout: self
+              sparseCheckoutDirectories: ${{ parameters.sparseCheckoutDirectories }}
+            - download: CIBuild
+            - template: step-deployhelmchart.yml
+              parameters:
+                kubernetesDeploymentServiceConnection: '${{ parameters.kubernetesDeploymentServiceConnection }}'
+                clusterNamespace: '${{ parameters.namespace }}'
+                chartPath: '${{ parameters.chartPackage }}'
+                releaseName: '${{ parameters.artifactName }}'
+                releaseValuesFile: '${{ parameters.valuesFile }}'
+                tokenizerSecrets: ${{ parameters.tokenizerSecrets }}

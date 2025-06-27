@@ -1,0 +1,3 @@
+image:
+  repository: __azureContainerRegistry__/kitchenservice
+  tag: __artifactVersion__

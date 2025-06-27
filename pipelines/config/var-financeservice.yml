@@ -1,0 +1,14 @@
+variables:
+- name: serviceName
+  value: financeservice
+- name: pipelineArtifactName
+  value: $(serviceName)
+- name: folderNameComponent
+  value: 'finance'
+- name: folderNameService
+  value: 'FinanceService'
+- name: dockerRepositoryName
+  value: $(serviceName)
+- name: versionTagPrefix
+  value: 'finance'
+

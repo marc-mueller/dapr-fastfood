@@ -1,0 +1,605 @@
+﻿name: fastfood
+
+services:
+  
+  financeservice:
+    container_name: financeservice
+    image: financeservice
+    build:
+      context: .
+      dockerfile: services/finance/FinanceService/Dockerfile
+    ports:
+      - "8901:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001  
+      - Observability__UseTracingExporter=otlp
+      - Observability__UseMetricsExporter=otlp
+      - Observability__UseLogExporter=OtlpAndAnsiConsole
+      - Observability__SamplerType=AlwaysOnSampler
+      - Observability__OtlpExporter__Endpoint=http://otel-collector:4317
+    networks:
+      - fastfoodnet
+
+  financeservice-dapr:
+    container_name: financeservice-dapr
+    image: "daprio/daprd:1.15.5"
+    command: [ "./daprd",
+               "--app-id", "financeservice",
+               "--app-port", "8080",
+               "--placement-host-address", "placement:50005",
+               "--resources-path", "/resources",
+               "--config", "/config/config.yaml",
+               "--sentry-address", "sentry:50001",
+               "--log-level", "info",
+               "--control-plane-trust-domain", "cluster.local",
+               "--enable-mtls"]
+    volumes:
+      - "../infrastructure-dev/dapr/resources/:/resources"
+      - "../infrastructure-dev/dapr/config/:/config"
+    env_file:
+      - ../infrastructure-dev/dapr/certs/mtls.env
+    depends_on:
+      financeservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:financeservice"
+  
+  kitchenservice:
+    container_name: kitchenservice
+    image: kitchenservice
+    build:
+      context: .
+      dockerfile: services/kitchen/KitchenService/Dockerfile
+    ports:
+      - "8701:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+      - Observability__UseTracingExporter=otlp
+      - Observability__UseMetricsExporter=otlp
+      - Observability__UseLogExporter=OtlpAndAnsiConsole
+      - Observability__SamplerType=AlwaysOnSampler
+      - Observability__OtlpExporter__Endpoint=http://otel-collector:4317
+    networks:
+      - fastfoodnet
+
+  kitchenservice-dapr:
+    container_name: kitchenservice-dapr
+    image: "daprio/daprd:1.15.5"
+    command: ["./daprd",
+              "--app-id", "kitchenservice",
+              "--app-port", "8080",
+              "--placement-host-address", "placement:50005",
+              "--resources-path", "/resources",
+              "--config", "/config/config.yaml",
+              "--sentry-address", "sentry:50001",
+              "--log-level", "info",
+              "--control-plane-trust-domain", "cluster.local",
+              "--enable-mtls"]
+    volumes:
+      - "../infrastructure-dev/dapr/resources/:/resources"
+      - "../infrastructure-dev/dapr/config/:/config"
+    env_file:
+      - ../infrastructure-dev/dapr/certs/mtls.env
+    depends_on:
+      kitchenservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:kitchenservice"
+
+  orderservice:
+    container_name: orderservice
+    image: orderservice
+    build:
+      context: .
+      dockerfile: services/order/OrderService/Dockerfile
+    ports:
+      - "8601:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+      - Observability__UseTracingExporter=otlp
+      - Observability__UseMetricsExporter=otlp
+      - Observability__UseLogExporter=OtlpAndAnsiConsole
+      - Observability__SamplerType=AlwaysOnSampler
+      - Observability__OtlpExporter__Endpoint=http://otel-collector:4317
+    networks:
+      - fastfoodnet
+
+  orderservice-dapr:
+    container_name: orderservice-dapr
+    image: "daprio/daprd:1.15.5"
+    command: ["./daprd",
+              "--app-id", "orderservice",
+              "--app-port", "8080",
+              "--placement-host-address", "placement:50005",
+              "--resources-path", "/resources",
+              "--config", "/config/config.yaml",
+              "--sentry-address", "sentry:50001",
+              "--log-level", "info",
+              "--control-plane-trust-domain", "cluster.local",
+              "--enable-mtls"]
+    volumes:
+      - "../infrastructure-dev/dapr/resources/:/resources"
+      - "../infrastructure-dev/dapr/config/:/config"
+    env_file:
+      - ../infrastructure-dev/dapr/certs/mtls.env
+    depends_on:
+      orderservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:orderservice"
+
+  orderserviceactors:
+    container_name: orderserviceactors
+    image: orderserviceactors
+    build:
+      context: .
+      dockerfile: services/order/OrderService.Actors/Dockerfile
+    ports:
+      - "8651:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+      - Observability__UseTracingExporter=otlp
+      - Observability__UseMetricsExporter=otlp
+      - Observability__UseLogExporter=OtlpAndAnsiConsole
+      - Observability__SamplerType=AlwaysOnSampler
+      - Observability__OtlpExporter__Endpoint=http://otel-collector:4317
+    networks:
+      - fastfoodnet
+
+  orderserviceactors-dapr:
+    container_name: orderserviceactors-dapr
+    image: "daprio/daprd:1.15.5"
+    command: ["./daprd",
+              "--app-id", "orderserviceactors",
+              "--app-port", "8080",
+              "--placement-host-address", "placement:50005",
+              "--resources-path", "/resources",
+              "--config", "/config/config.yaml",
+              "--sentry-address", "sentry:50001",
+              "--log-level", "info",
+              "--control-plane-trust-domain", "cluster.local",
+              "--enable-mtls"]
+    volumes:
+      - "../infrastructure-dev/dapr/resources/:/resources"
+      - "../infrastructure-dev/dapr/config/:/config"
+    env_file:
+      - ../infrastructure-dev/dapr/certs/mtls.env
+    depends_on:
+      orderserviceactors:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:orderserviceactors"
+
+  frontendselfservicepos:
+    container_name: frontendselfservicepos
+    image: frontendselfservicepos
+    build:
+      context: .
+      dockerfile: services/frontendselfservicepos/FrontendSelfServicePos/Dockerfile
+    ports:
+      - "8801:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+      - Observability__UseTracingExporter=otlp
+      - Observability__UseMetricsExporter=otlp
+      - Observability__UseLogExporter=OtlpAndAnsiConsole
+      - Observability__SamplerType=AlwaysOnSampler
+      - Observability__OtlpExporter__Endpoint=http://otel-collector:4317
+    networks:
+      - fastfoodnet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontendselfservicepos.rule=Host(`pos.localtest.me`)"
+      - "traefik.http.routers.frontendselfservicepos.entrypoints=websecure"
+      - "traefik.http.services.frontendselfservicepos.loadbalancer.server.port=8080"
+
+  frontendselfservicepos-dapr:
+    container_name: frontendselfservicepos-dapr
+    image: "daprio/daprd:1.15.5"
+    command: ["./daprd",
+              "--app-id", "frontendselfservicepos",
+              "--app-port", "8080",
+              "--placement-host-address", "placement:50005",
+              "--resources-path", "/resources",
+              "--config", "/config/config.yaml",
+              "--sentry-address", "sentry:50001",
+              "--log-level", "info",
+              "--control-plane-trust-domain", "cluster.local",
+              "--enable-mtls"]
+    volumes:
+      - "../infrastructure-dev/dapr/resources/:/resources"
+      - "../infrastructure-dev/dapr/config/:/config"
+    env_file:
+      - ../infrastructure-dev/dapr/certs/mtls.env
+    depends_on:
+      kitchenservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:frontendselfservicepos"
+    
+  frontendkitchenmonitor:
+    container_name: frontendkitchenmonitor
+    image: frontendkitchenmonitor
+    build:
+      context: .
+      dockerfile: services/frontendkitchenmonitor/FrontendKitchenMonitor/Dockerfile
+    ports:
+      - "8802:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+      - Observability__UseTracingExporter=otlp
+      - Observability__UseMetricsExporter=otlp
+      - Observability__UseLogExporter=OtlpAndAnsiConsole
+      - Observability__SamplerType=AlwaysOnSampler
+      - Observability__OtlpExporter__Endpoint=http://otel-collector:4317
+    networks:
+      - fastfoodnet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontendkitchenmonitor.rule=Host(`kitchen.localtest.me`)"
+      - "traefik.http.routers.frontendkitchenmonitor.entrypoints=websecure"
+      - "traefik.http.services.frontendkitchenmonitor.loadbalancer.server.port=8080"  
+  
+  frontendkitchenmonitor-dapr:
+    container_name: frontendkitchenmonitor-dapr
+    image: "daprio/daprd:1.15.5"
+    command: [ "./daprd",
+               "--app-id", "frontendkitchenmonitor",
+               "--app-port", "8080",
+               "--placement-host-address", "placement:50005",
+               "--resources-path", "/resources",
+               "--config", "/config/config.yaml",
+               "--sentry-address", "sentry:50001",
+               "--log-level", "info",
+               "--control-plane-trust-domain", "cluster.local",
+               "--enable-mtls" ]
+    volumes:
+      - "../infrastructure-dev/dapr/resources/:/resources"
+      - "../infrastructure-dev/dapr/config/:/config"
+    env_file:
+      - ../infrastructure-dev/dapr/certs/mtls.env
+    depends_on:
+      kitchenservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:frontendkitchenmonitor"
+
+  frontendcustomerorderstatus:
+    container_name: frontendcustomerorderstatus
+    image: frontendcustomerorderstatus
+    build:
+      context: .
+      dockerfile: services/frontendcustomerorderstatus/FrontendCustomerOrderStatus/Dockerfile
+    ports:
+      - "8803:8080"
+    environment:
+      - DAPR_HTTP_PORT=3500
+      - DAPR_GRPC_PORT=50001
+      - Observability__UseTracingExporter=otlp
+      - Observability__UseMetricsExporter=otlp
+      - Observability__UseLogExporter=OtlpAndAnsiConsole
+      - Observability__SamplerType=AlwaysOnSampler
+      - Observability__OtlpExporter__Endpoint=http://otel-collector:4317
+    networks:
+      - fastfoodnet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontendcustomerorderstatus.rule=Host(`orderstatus.localtest.me`)"
+      - "traefik.http.routers.frontendcustomerorderstatus.entrypoints=websecure"
+      - "traefik.http.services.frontendcustomerorderstatus.loadbalancer.server.port=8080"
+  
+  frontendcustomerorderstatus-dapr:
+    container_name: frontendcustomerorderstatus-dapr
+    image: "daprio/daprd:1.15.5"
+    command: [ "./daprd",
+               "--app-id", "frontendcustomerorderstatus",
+               "--app-port", "8080",
+               "--placement-host-address", "placement:50005",
+               "--resources-path", "/resources",
+               "--config", "/config/config.yaml",
+               "--sentry-address", "sentry:50001",
+               "--log-level", "info",
+               "--control-plane-trust-domain", "cluster.local",
+               "--enable-mtls" ]
+    volumes:
+      - "../infrastructure-dev/dapr/resources/:/resources"
+      - "../infrastructure-dev/dapr/config/:/config"
+    env_file:
+      - ../infrastructure-dev/dapr/certs/mtls.env
+    depends_on:
+      kitchenservice:
+        condition: service_started
+      redis:
+        condition: service_started
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:frontendcustomerorderstatus"
+
+  redis:
+    container_name: redis
+    image: "redis:7.2.4"
+    ports:
+      - "6379:6379"
+    networks:
+      - fastfoodnet
+
+  placement:
+    container_name: placement
+    image: "daprio/dapr:1.15.5"
+    command: ["./placement",
+              "--sentry-address", "sentry:50001",
+              "--tls-enabled",
+              "--trust-domain", "cluster.local"]
+    ports:
+      - "50005:50005"
+    volumes:
+      - "../infrastructure-dev/dapr/certs/:/var/run/secrets/dapr.io/tls"
+    networks:
+      - fastfoodnet
+      
+  scheduler:
+    image: "daprio/dapr:1.15.5"
+    command: [ "./scheduler", 
+               "--port", "50007"]
+    ports:
+      - "50007:50007"
+    volumes:
+      - "../infrastructure-dev/dapr/certs/:/var/run/secrets/dapr.io/tls"
+      - "../infrastructure-dev/dapr/data/scheduler:/data"
+    networks:
+      - fastfoodnet
+        
+  sentry:
+    image: "daprio/sentry:1.15.5"
+    container_name: sentry
+    command: ["./sentry",
+              "--issuer-credentials", "/certs",
+              "--trust-domain", "cluster.local",
+              "--config", "/config/config.yaml",
+              "--log-level", "info",
+    ]
+    volumes:
+      - "../infrastructure-dev/dapr/certs/:/certs"
+      - "../infrastructure-dev/dapr/config/:/config"
+    ports:
+      - "8082:8080"
+    networks:
+      - fastfoodnet
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - fastfoodnet
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
+  dapr-dashboard:
+    container_name: dapr-dashboard
+    image: "daprio/dashboard:0.15.0"
+    command: [ "-docker-compose=true",
+               "-components-path=/home/nonroot/components",
+               "-config-path=/home/nonroot/configuration",
+               "-docker-compose-path=/home/nonroot/docker-compose.yml" ]
+    ports:
+      - "8080:8080"
+    volumes:
+      - "../infrastructure-dev/dapr/resources/:/home/nonroot/components"
+      - "../infrastructure-dev/dapr/config/:/home/nonroot/configuration"
+      - "./docker-compose.yml:/home/nonroot/docker-compose.yml"
+      - "../infrastructure-dev/dapr/certs:/app/dapr/certs"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.daprdashboard.rule=Host(`daprdashboard.localtest.me`)"
+      - "traefik.http.routers.daprdashboard.entrypoints=websecure"
+      - "traefik.http.services.daprdashboard.loadbalancer.server.port=8080"
+    networks:
+      - fastfoodnet
+
+  proxy:
+    container_name: proxy
+    image: traefik:v3.1
+    command:
+      - "--api.insecure=true" # Traefik dashboard (only for dev)
+      - "--log.level=INFO"
+      - "--providers.docker=true"
+      - "--providers.docker.network=fastfoodnet"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/config/traefik.yml"
+      - "--entrypoints.web.address=:80"
+      # - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      # - "--entryPoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.asDefault=true" 
+      - "--entrypoints.websecure.http.tls=true"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+      - "--accesslog.format=json"
+    ports:
+      - "80:80"   # HTTP
+      - "443:443" # HTTPS
+      - "8081:8080" # Traefik Dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "../infrastructure-dev/proxy/certs:/certs" # Mounting the directory containing the self-signed certs
+      - "../infrastructure-dev/proxy/traefikconfig:/config"
+    networks:
+      fastfoodnet:
+        aliases: 
+          - pos.localtest.me
+          - kitchen.localtest.me
+          - orderstatus.localtest.me
+          - daprdashboard.localtest.me
+          - grafana.localtest.me
+          - jaeger.localtest.me
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.128.0
+    container_name: otel-collector
+    deploy:
+      resources:
+        limits:
+          memory: 125M
+    restart: unless-stopped
+    command: 
+      - "--config=/etc/otel-collector-config.yml"
+      #- "--feature-gates=-component.UseLocalHostAsDefaultHost"
+    volumes:
+      - ../infrastructure-dev/otel-collector/otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "4317:4317"          # OTLP over gRPC receiver
+      - "4318:4318"          # OTLP over HTTP receiver
+      - "9464:9464"          # Prometheus exporter
+      - "8888:8888"          # metrics endpoint
+    depends_on:
+      - jaeger
+      - prometheus
+      - loki
+    networks:
+      - fastfoodnet
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: grafana
+    deploy:
+      resources:
+        limits:
+          memory: 75M
+    volumes:
+      - ../infrastructure-dev/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ../infrastructure-dev/grafana/provisioning/:/etc/grafana/provisioning/
+    ports:
+      - "3000:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.localtest.me`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    networks:
+      - fastfoodnet
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.70.0
+    container_name: jaeger
+    command:
+      - "--memory.max-traces"
+      - "10000"
+      - "--query.base-path"
+      - "/jaeger/ui"
+      - "--prometheus.server-url"
+      - "http://prometheus:9090"
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    restart: unless-stopped
+    ports:
+      - "16686:16686"         # Jaeger UI
+      - "4317"                # OTLP gRPC default port
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - METRICS_STORAGE_TYPE=prometheus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jaeger.rule=Host(`jaeger.localtest.me`)"
+      - "traefik.http.routers.jaeger.entrypoints=websecure"
+      - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
+    networks:
+      - fastfoodnet
+
+  loki:
+    image: grafana/loki:3.4.4
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+    - ../infrastructure-dev/loki/loki-config.yaml:/etc/loki/loki-config.yaml
+    networks:
+      - fastfoodnet
+
+  prometheus:
+    image: quay.io/prometheus/prometheus:v3.4.0
+    container_name: prometheus
+    command:
+      - --web.console.templates=/etc/prometheus/consoles
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --storage.tsdb.retention.time=1h
+      - --config.file=/etc/prometheus/prometheus.yaml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+      - --enable-feature=exemplar-storage
+      - --enable-feature=native-histograms
+      - --web.enable-otlp-receiver
+    volumes:
+      - ../infrastructure-dev/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    ports:
+      - "9090:9090"
+    networks:
+      - fastfoodnet
+
+networks:
+  fastfoodnet:
+    name: fastfoodnet

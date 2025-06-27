@@ -1,0 +1,30 @@
+variables:
+# - name: AzureSubscription
+#   value: 'Microsoft Azure Sponsorship'
+- name: azureContainerRegistryServiceConnection
+  value: 4taksDemoAcr
+- name: azureContainerRegistry
+  value: '4taksdemoacr.azurecr.io'
+- name: azureResourceGroup
+  value: 'aksDemo'
+- name: kubernetesCluster
+  value: 'dev-aks-k8sdemo-westeurope'
+- name: kubectlVersion
+  value: '1.26.0'
+- name: helmVersion
+  value: '3.12.0'
+- name: azureContainerRegistry
+  value: '4taksdemoacr.azurecr.io'
+- name: netCoreAspNetVersion
+  value: 9.0.3
+- name: NetCoreSdkVersion
+  value: 9.0.300
+
+- name: dockerFilePath
+  value: 'src/services/$(folderNameComponent)/$(folderNameService)/Dockerfile'
+- name: helmChartSourcePath
+  value: 'src/services/$(folderNameComponent)/$(folderNameService)/chart/$(serviceName)'
+- name: componentPath
+  value: 'src/services/$(folderNameComponent)'
+- name: helmValuesOverwritesFile
+  value: 'pipelines/config/$(stagename)/$(folderNameComponent)/values.yml'

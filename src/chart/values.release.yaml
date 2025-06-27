@@ -1,0 +1,51 @@
+dapr:
+  redisHost: "redis-master.redis:6379"
+  redisPassword: ""
+
+frontendcustomerorderstatus:
+  ingress:
+    enabled: enabled
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-cluster
+    hosts:
+      - host: customerordersstatus.fastfood.demo.reafx.net
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: 
+     - secretName: frontendcustomerorderstatus-tls
+       hosts:
+         - customerordersstatus.fastfood.demo.reafx.net
+
+frontendkitchenmonitor:
+  ingress:
+    enabled: enabled
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-cluster
+    hosts:
+      - host: kitchenmonitor.fastfood.demo.reafx.net
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: 
+     - secretName: frontendkitchenmonitor-tls
+       hosts:
+         - kitchenmonitor.fastfood.demo.reafx.net
+
+frontendselfservicepos:
+  ingress:
+    enabled: enabled
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-cluster
+    hosts:
+      - host: selfservicepos.fastfood.demo.reafx.net
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: 
+     - secretName: frontendselfservicepos-tls
+       hosts:
+         - selfservicepos.fastfood.demo.reafx.net

@@ -1,0 +1,48 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: deployment-manager
+rules:
+  # full control of common workload resources
+- apiGroups: ["", "apps", "batch", "extensions", "networking.k8s.io", "policy"]
+  resources:
+    - pods
+    - deployments
+    - daemonsets
+    - statefulsets
+    - replicasets
+    - jobs
+    - cronjobs
+    - services
+    - endpoints
+    - configmaps
+    - secrets
+    - persistentvolumeclaims
+    - ingresses
+    - networkpolicies
+    - resourcequotas
+    - horizontalpodautoscalers
+  verbs: ["*"]
+  # allow creating (and reading/listing/etc) Namespaces so PR namespaces can be spun up
+- apiGroups: [""]
+  resources:
+    - namespaces
+  verbs: ["create", "get", "list", "watch"]
+  # allow binding roles within a namespace if your charts set up any RoleBindings
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources:
+    - roles
+    - rolebindings
+  verbs: ["*"]
+- apiGroups: [""]
+  resources:
+    - serviceaccounts
+  verbs:
+    - "*"
+- apiGroups: ["dapr.io"]
+  resources:
+    - components
+    - configurations
+    - subscriptions
+    - resiliencies
+  verbs: ["*"]

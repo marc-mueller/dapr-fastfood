@@ -1,0 +1,44 @@
+name: ci-orderservice
+
+trigger:
+  branches:
+    include:
+      - main
+      - release/*
+  paths:
+    include:
+      - src/services/order/**
+
+variables:
+  - template: config/var-commonvariables.yml
+  - template: config/var-orderservice.yml
+
+jobs:
+  - template: build/job-buildcontainerizedservice.yml
+    parameters:
+      displayName: "Build Order Service"
+      dockerFile: '$(dockerFilePath)'
+      dockerRepositoryName: '$(dockerRepositoryName)'
+      chartPath: '$(helmChartSourcePath)'
+      artifactName: '$(pipelineArtifactName)'
+      azureContainerRegistryServiceConnection: '$(azureContainerRegistryServiceConnection)'
+      netCoreAspNetVersion: '$(netCoreAspNetVersion)'
+      netCoreSdkVersion: '$(netCoreSdkVersion)'
+      helmVersion: '$(helmVersion)'
+      artifactStagingDirectory: '$(Build.ArtifactStagingDirectory)'
+      buildContext: '$(Build.SourcesDirectory)/src'
+      buildId: '$(Build.BuildId)'
+      buildNumber: '$(Build.BuildNumber)'
+      servicePaths:
+        - '$(componentPath)'
+      serviceTagPrefix: '$(versionTagPrefix)'
+      installMonotag: true
+      updateBuildNumber: true
+      nugetFeeds: []
+      publishArtifacts:
+        - dockerfileTarget: "test"
+          imageLabel: "testresults"
+          directoryToCopy: "/testresults"
+          artifactName: "testresults"
+          publishType: "testResults"
+      dockerArguments: '--build-arg IMAGE_NET_ASPNET_VERSION=$(netCoreAspNetVersion) --build-arg IMAGE_NET_SDK_VERSION=$(netCoreSdkVersion)'

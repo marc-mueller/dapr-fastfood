@@ -1,0 +1,6 @@
+# Release notes: https://learn.microsoft.com/en-us/azure/devops/release-notes/2024/repos/sprint-246-update#configure-target-branches-for-pull-requests
+
+pull_request_targets:
+  - main
+  - release/*
+  - feature/*

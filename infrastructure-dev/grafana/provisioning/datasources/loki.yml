@@ -1,0 +1,26 @@
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    uid: loki-logs
+    type: loki
+    url: http://loki:3100
+    access: proxy
+    isDefault: false
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        # Using Label type to extract trace_id from log labels/fields
+        - name: 'TraceID'
+          matcherRegex: 'trace_id' 
+          matcherType: label
+          datasourceUid: jaeger-traces
+          url: '$${__value.raw}'
+          urlDisplayLabel: 'View Trace'
+        # Fallback for any logs still using the old pattern in the log line
+        - name: 'TraceID-Legacy'
+          type: 'regex'
+          matcherRegex: '"traceid":"(\w+)"'
+          datasourceUid: jaeger-traces
+          url: "$${__value.raw}"
+          urlDisplayLabel: 'View Trace'

@@ -1,0 +1,10 @@
+variables:
+- name: serviceName
+  value: daprenv
+- name: pipelineArtifactName
+  value: daprenv
+- name: folderNameComponent
+  value: 'dapr'
+- name: folderNameService
+  value: 'dapr'
+
