@@ -45,12 +45,20 @@ parameters:
   - name: dockerArguments
     type: string
     default: ''
+  - name: pool
+    type: object
+    default:
+      vmImage: 'ubuntu-latest'
+  - name: container
+    type: string
+    default: ''
 
 jobs:
   - job: build
     displayName: ${{ parameters.displayName }}
-    pool:
-      vmImage: 'ubuntu-latest'
+    pool: ${{ parameters.pool }}
+    ${{ if ne(parameters.container, '') }}:
+      container: ${{ parameters.container }}
     steps:
       - checkout: self
         fetchDepth: 0
@@ -76,6 +84,8 @@ jobs:
           publishArtifacts: ${{ parameters.publishArtifacts }}
           netCoreAspNetVersion: ${{ parameters.netCoreAspNetVersion }}
           netCoreSdkVersion: ${{ parameters.netCoreSdkVersion }}
+          ${{ if ne(parameters.container, '') }}:
+            runOnHost: true
       - template: ../build/step-buildhelmpackage.yml
         parameters:
           helmVersion: ${{ parameters.helmVersion }}

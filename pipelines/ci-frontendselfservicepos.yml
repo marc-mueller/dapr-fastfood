@@ -10,8 +10,15 @@ trigger:
       - src/services/frontendselfservicepos/**
 
 variables:
+  - template: config/var-pool.yml
   - template: config/var-commonvariables.yml
   - template: config/var-frontendselfservicepos.yml
+
+resources:
+  containers:
+  - container: worker
+    image: $(azureContainerRegistry)/fastfood-buildenv:$(NetCoreSdkVersion)
+    endpoint: 4taksDemoAcr
 
 jobs:
   - template: build/job-buildcontainerizedservice.yml
@@ -32,7 +39,7 @@ jobs:
       servicePaths:
         - '$(componentPath)'
       serviceTagPrefix: '$(versionTagPrefix)'
-      installMonotag: true
+      installMonotag: false
       updateBuildNumber: true
       nugetFeeds: []
       publishArtifacts:
@@ -42,3 +49,9 @@ jobs:
           artifactName: "testresults"
           publishType: "testResults"
       dockerArguments: '--build-arg IMAGE_NET_ASPNET_VERSION=$(netCoreAspNetVersion) --build-arg IMAGE_NET_SDK_VERSION=$(netCoreSdkVersion)'
+      pool:
+        ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+          vmImage: ${{ variables['poolVmImage'] }}
+        ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+          name: ${{ variables['buildPoolName'] }}
+      container: worker

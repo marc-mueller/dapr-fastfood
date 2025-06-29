@@ -1,0 +1,104 @@
+# File    : setup-pipelines.yml
+# Comment : Creates pipelines from Azure Pipeline YAML files for FastFoodDelivery.
+# Docs    : https://docs.microsoft.com/en-us/cli/azure/ext/azure-devops/pipelines#ext_azure_devops_az_pipelines_create
+# Note    : This pipeline uses the OAuth token and requires additional permissions to be able to create new pipelines.
+
+trigger: none
+
+parameters:
+- name: pipelines
+  displayName: 'Pipelines to create (name, yaml path, folder)'
+  type: object
+  default:
+    - name: 'buildanddeploybuildenvimage'
+      yaml: 'infrastructure/BuildEnvironment/buildanddeploybuildenvimage.yml'
+      folder: 'Fastfood/Infrastructure'
+    - name: 'cd-financeservice'
+      yaml: 'pipelines/cd-financeservice.yml'
+      folder: 'Fastfood'
+    - name: 'cd-frontendcustomerorderstatus'
+      yaml: 'pipelines/cd-frontendcustomerorderstatus.yml'
+      folder: 'Fastfood'
+    - name: 'cd-frontendkitchenmonitor'
+      yaml: 'pipelines/cd-frontendkitchenmonitor.yml'
+      folder: 'Fastfood'
+    - name: 'cd-frontendselfservicepos'
+      yaml: 'pipelines/cd-frontendselfservicepos.yml'
+      folder: 'Fastfood'
+    - name: 'cd-kitchenservice'
+      yaml: 'pipelines/cd-kitchenservice.yml'
+      folder: 'Fastfood'
+    - name: 'cd-orderservice'
+      yaml: 'pipelines/cd-orderservice.yml'
+      folder: 'Fastfood'
+    - name: 'cd-targetinfrastructure'
+      yaml: 'pipelines/cd-targetinfrastructure.yml'
+      folder: 'Fastfood'
+    - name: 'ci-financeservice'
+      yaml: 'pipelines/ci-financeservice.yml'
+      folder: 'Fastfood'
+    - name: 'ci-frontendcustomerorderstatus'
+      yaml: 'pipelines/ci-frontendcustomerorderstatus.yml'
+      folder: 'Fastfood'
+    - name: 'ci-frontendkitchenmonitor'
+      yaml: 'pipelines/ci-frontendkitchenmonitor.yml'
+      folder: 'Fastfood'
+    - name: 'ci-frontendselfservicepos'
+      yaml: 'pipelines/ci-frontendselfservicepos.yml'
+      folder: 'Fastfood'
+    - name: 'ci-kitchenservice'
+      yaml: 'pipelines/ci-kitchenservice.yml'
+      folder: 'Fastfood'
+    - name: 'ci-orderservice'
+      yaml: 'pipelines/ci-orderservice.yml'
+      folder: 'Fastfood'
+    - name: 'ci-targetinfrastructure'
+      yaml: 'pipelines/ci-targetinfrastructure.yml'
+      folder: 'Fastfood'
+    - name: 'pr-initialize'
+      yaml: 'pipelines/pr-initialize.yml'
+      folder: 'Fastfood'
+    - name: 'pr-securityscan'
+      yaml: 'pipelines/pr-securityscan.yml'
+      folder: 'Fastfood'
+    - name: 'pr-cleanup'
+      yaml: 'pipelines/pr-cleanup.yml'
+      folder: 'Fastfood'
+
+- name: repoName
+  displayName: 'Name of git repo (where to create pipelines)'
+  type: string
+  default: '$(Build.Repository.Name)'
+- name: branchName
+  displayName: 'Branch name (where to create pipelines in)'
+  type: string
+  default: '$(Build.SourceBranch)'
+
+variables:
+  repoName:    '${{ parameters.repoName }}'
+  branchName:  '${{ parameters.branchName }}'
+
+steps:
+- checkout: none
+
+- powershell: | 
+    az --version
+    az extension add --name azure-devops
+    az devops configure --defaults organization=$(System.TeamFoundationCollectionUri) project=$(System.TeamProject)
+  displayName: 'Configure Azure CLI'
+  env:
+    AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+
+- ${{ each pipeline in parameters.pipelines }}:
+  - powershell: |
+      az pipelines create `
+        --name "${{ pipeline.name }}" `
+        --folder-path "${{ pipeline.folder }}" `
+        --repository-type tfsgit `
+        --repository $(repoName) `
+        --branch $(branchName) `
+        --yaml-path ${{ pipeline.yaml }}
+    displayName: '${{ pipeline.name }}: az pipelines create'
+    continueOnError: true
+    env:
+      AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)

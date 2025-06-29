@@ -1,32 +1,69 @@
+# azure-pipelines/templates/pr-status.yml
 parameters:
-  - name: contextName     # e.g. "deploy-devfunapi"
+  - name: contextName
     type: string
-  - name: state           # "pending", "succeeded", "failed", etc.
+  - name: state
     type: string
-  - name: description     # e.g. "Deploy DevFun API"
+  - name: description
     type: string
-  - name: targetUrl       # e.g. "https://…/logs/123"
+  - name: targetUrl       # optional override
     type: string
+    default: ''
+  - name: genre           # optional context.genre
+    type: string
+    default: ''
+  - name: iterationId     # optional PR iteration
+    type: string
+    default: ''
 
 steps:
 - task: Bash@3
-  displayName: 'Set PR status: ${{ parameters.contextName }} → ${{ parameters.state }}'
+  displayName: "Set PR status: ${{ parameters.contextName }} → ${{ parameters.state }}"
   env:
     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   inputs:
     targetType: 'inline'
     script: |
-      baseUrl="${SYSTEM_COLLECTIONURI}${SYSTEM_TEAMPROJECT}"
-      statusUrl="$baseUrl/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${SYSTEM_PULLREQUEST_PULLREQUESTID}/statuses?api-version=6.0"
-      # Build JSON payload
+      set -euo pipefail           # stop on any error
+
+      # ---------- derive API route ----------
+      baseUrl="${SYSTEM_TEAMFOUNDATIONCOLLECTIONURI}${SYSTEM_TEAMPROJECT}"
+      statusUrl="$baseUrl/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${SYSTEM_PULLREQUEST_PULLREQUESTID}/statuses?api-version=7.1"
+
+      # ---------- choose targetUrl ----------
+      if [ -n "${{ parameters.targetUrl }}" ]; then
+        targetUrl='${{ parameters.targetUrl }}'
+      else
+        targetUrl="${SYSTEM_TEAMFOUNDATIONCOLLECTIONURI}${SYSTEM_TEAMPROJECT}/_build/results?buildId=${BUILD_BUILDID}"
+      fi
+
+      # ---------- build JSON payload ----------
+      jqFilter='
+        def context:
+          if $genre != "" then {name: $name, genre: $genre}
+          else {name: $name}
+          end;
+        {
+          state: $state,
+          description: $descr,
+          targetUrl: ($url | select(. != "")),
+          context: context
+        }
+        + (if $iteration != "" then {iterationId: ($iteration|tonumber)} else {} end)
+      '
+
       payload=$(jq -n \
-        --arg state "${{ parameters.state }}" \
-        --arg descr "${{ parameters.description }}" \
-        --arg name  "${{ parameters.contextName }}" \
-        --arg url   "${{ parameters.targetUrl }}" \
-        '{state: $state, description: $descr, targetUrl: $url, context: {name: $name}}')
-      # POST (creates or updates the named context)
-      curl -s -H "Content-Type: application/json" \
+        --arg state     "${{ parameters.state }}" \
+        --arg descr     "${{ parameters.description }}" \
+        --arg name      "${{ parameters.contextName }}" \
+        --arg url       "$targetUrl" \
+        --arg genre     "${{ parameters.genre }}" \
+        --arg iteration "${{ parameters.iterationId }}" \
+        "$jqFilter")
+
+      # ---------- POST (create or update) ----------
+      curl --fail-with-body -sS \
+           -H "Content-Type: application/json" \
            -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
            -d "$payload" \
            "$statusUrl"

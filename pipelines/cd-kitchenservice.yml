@@ -14,15 +14,16 @@ resources:
         - hotfix/*
         - pull/*
         - refs/pull/*
-  # containers:
-  # - container: worker
-  #   image: 4taksdemoacr.azurecr.io/linuxworker:latest
-  #   endpoint: 4taksDemoAcr
+  containers:
+  - container: worker
+    image: $(azureContainerRegistry)/fastfood-buildenv:$(NetCoreSdkVersion)
+    endpoint: 4taksDemoAcr
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
+  - template: config/var-pool.yml
   - template: config/var-commonvariables.yml
   - template: config/var-commonvariables-release.yml
   - template: config/var-kitchenservice.yml
@@ -38,6 +39,7 @@ stages:
     jobs:
       - template: deploy/job-deployservicetok8s.yml
         parameters:
+          container: worker
           environment: 'fastfood-$(stagename)'
           namespace: '$(namespace)'
           valuesFile: '$(helmValuesOverwritesFile)'
@@ -46,6 +48,11 @@ stages:
           kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
           updateBuildNumber: true
           sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+          pool:
+            ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+              vmImage: ${{ variables['poolVmImage'] }}
+            ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+              name: ${{ variables['releasePoolDevTestName'] }}
 
   - stage: Production
     dependsOn: Staging
@@ -58,6 +65,7 @@ stages:
     jobs:
       - template: deploy/job-deployservicetok8s.yml
         parameters:
+          container: worker
           environment: 'fastfood-$(stagename)'
           namespace: '$(namespace)'
           valuesFile: '$(helmValuesOverwritesFile)'
@@ -66,12 +74,18 @@ stages:
           kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
           updateBuildNumber: true
           sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+          pool:
+            ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+              vmImage: ${{ variables['poolVmImage'] }}
+            ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+              name: ${{ variables['releasePoolProdName'] }}
 
   - stage: PullRequest
-    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+    dependsOn: []
+    #condition: and(succeeded(), ne(variables['System.PullRequest.PullRequestId'], ''))    
     variables:
       - name: stagename
-        value: staging
+        value: pr
       - name: namespace
         value: $(stagename)-$(System.PullRequest.PullRequestId)
       - name: redisDB
@@ -79,6 +93,7 @@ stages:
     jobs:
       - template: deploy/job-deployservicetok8s.yml
         parameters:
+          container: worker
           environment: 'fastfood-$(stagename)'
           namespace: '$(namespace)'
           valuesFile: '$(helmValuesOverwritesFile)'
@@ -87,3 +102,21 @@ stages:
           kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
           updateBuildNumber: true
           sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+          pool:
+            ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+              vmImage: ${{ variables['poolVmImage'] }}
+            ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+              name: ${{ variables['releasePoolDevTestName'] }}
+          jobName: 'deploy'
+      - template: deploy/job-verifyprdeployment.yml
+        parameters:
+          container: worker
+          serviceName: '$(serviceName)'
+          displayName: 'Run System Tests for PR $(System.PullRequest.PullRequestId)'
+          pool:
+            ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+              vmImage: ${{ variables['poolVmImage'] }}
+            ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+              name: ${{ variables['releasePoolDevTestName'] }}
+          jobName: 'verifydeployment'
+          dependsOn: ['deploy']

@@ -1,5 +1,5 @@
 # ----- Build Stage -----
-FROM mcr.microsoft.com/dotnet/sdk:9.0.200 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0.300 AS build
 WORKDIR /src
 
 # Install additional tools for AOT compilation
@@ -27,7 +27,7 @@ RUN find /app/publish -type d -exec chmod 755 {} \; && \
 # ----- Runtime Targets -----
 
 # 1. Standard runtime image using the default ASP.NET runtime
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.2 AS base_standard
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.3 AS base_standard
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
@@ -41,21 +41,21 @@ ENTRYPOINT ["dotnet", "FinanceService.dll"]
 # ENTRYPOINT ["./FinanceService"]
 
 # 3. Optimized build on the Alpine-based ASP.NET runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.2-alpine3.21 AS base_alpine
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.3-alpine3.21 AS base_alpine
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "FinanceService.dll"]
 
 # 4. Optimized build on the chiseled ASP.NET runtime image (minimal footprint)
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.2-noble-chiseled AS base_chiseled
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.3-noble-chiseled AS base_chiseled
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "FinanceService.dll"]
 
 # 5. Optimized build on the chiseled ASP.NET runtime image with icu or tzdata (minimal footprint)
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.2-noble-chiseled-extra AS base_chiseled_extra
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.3-noble-chiseled-extra AS base_chiseled_extra
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080

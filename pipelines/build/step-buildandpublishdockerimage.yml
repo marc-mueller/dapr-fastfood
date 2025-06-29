@@ -58,9 +58,15 @@ parameters:
 - name: netCoreSdkVersion
   type: string
   default: 
+- name: runOnHost
+  type: boolean
+  default: false
+
 
 steps:
 - task: CopyFiles@2
+  ${{ if eq(parameters.runOnHost, true) }}:   
+    target: host
   displayName: "Copy props from repo root to docker context root"
   inputs:
     Contents: |
@@ -84,6 +90,8 @@ steps:
       $nugetConfig = $nugetConfig -Replace '</configuration>', "$credentialBlock`n</configuration>"
       $nugetConfig | Out-File -FilePath "$(Agent.TempDirectory)/nuget.config" -NoNewline -Encoding UTF8
     displayName: 'Prepare nuget.config Secret File'
+    ${{ if eq(parameters.runOnHost, true) }}:   
+      target: host
 
 - ${{ each artifact in parameters.publishArtifacts }}:
   - task: Docker@2
@@ -101,6 +109,8 @@ steps:
         arguments: --secret id=nugetconfig,src=$(Agent.TempDirectory)/nuget.config ${{ parameters.dockerArguments }} --build-arg BUILDID=${{ parameters.buildId }} --target ${{ artifact.dockerfileTarget }} --progress=plain
       ${{ if eq(length(parameters.nugetFeeds), 0) }}:
         arguments: ${{ parameters.dockerArguments }} --build-arg BUILDID=${{ parameters.buildId }} --target ${{ artifact.dockerfileTarget }} --progress=plain
+    ${{ if eq(parameters.runOnHost, true) }}:   
+      target: host
 
   - pwsh: |
       Write-Host "Create docker container by filter: label=${{ artifact.imageLabel }}=${{ parameters.buildId }}"
@@ -110,6 +120,8 @@ steps:
       docker cp ${{ artifact.artifactName }}container-${{ parameters.buildId }}:${{ artifact.directoryToCopy }} $(Build.ArtifactStagingDirectory)/${{ artifact.artifactName }}
       docker rm ${{ artifact.artifactName }}container-${{ parameters.buildId }}
     displayName: 'Copy ${{ artifact.artifactName }} from container'
+    ${{ if eq(parameters.runOnHost, true) }}:   
+      target: host
 
   - ${{ if eq(artifact.publishType, 'testResults') }}:
     - task: PublishTestResults@2
@@ -119,6 +131,8 @@ steps:
         testResultsFiles: '**/*.trx'
         searchFolder: '$(Build.ArtifactStagingDirectory)/${{ artifact.artifactName }}'
         testRunTitle: 'Unit Tests ${{ parameters.buildNumber }}'
+      ${{ if eq(parameters.runOnHost, true) }}:   
+        target: host
 
     - task: PublishCodeCoverageResults@1
       displayName: 'Publish code coverage results'
@@ -126,6 +140,8 @@ steps:
         codeCoverageTool: 'Cobertura'
         summaryFileLocation: '$(Build.ArtifactStagingDirectory)/${{ artifact.artifactName }}/coverage/coverage.json'
         reportDirectory: '$(Build.ArtifactStagingDirectory)/${{ artifact.artifactName }}/coverage/reports'
+      ${{ if eq(parameters.runOnHost, true) }}:   
+        target: host
 
   - ${{ if ne(artifact.publishType, 'testResults') }}:
     - task: PublishBuildArtifacts@1
@@ -133,6 +149,8 @@ steps:
       inputs:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)/${{ artifact.artifactName }}'
         ArtifactName: '${{ artifact.artifactName }}'
+      ${{ if eq(parameters.runOnHost, true) }}:   
+        target: host
 
 - task: Docker@2
   displayName: 'Build Docker Image (final)'
@@ -149,6 +167,8 @@ steps:
       arguments: --secret id=nugetconfig,src=$(Agent.TempDirectory)/nuget.config ${{ parameters.dockerArguments }} --build-arg BUILDID=${{ parameters.buildId }} --target final --progress=plain
     ${{ if eq(length(parameters.nugetFeeds), 0) }}:
       arguments: ${{ parameters.dockerArguments }} --build-arg BUILDID=${{ parameters.buildId }} --target final --progress=plain
+  ${{ if eq(parameters.runOnHost, true) }}:   
+    target: host
 
 - task: Docker@2
   displayName: 'Push the docker image to the registry'
@@ -159,3 +179,5 @@ steps:
     tags: |
       ${{ lower(parameters.buildNumber) }}
       latest
+  ${{ if eq(parameters.runOnHost, true) }}:   
+    target: host

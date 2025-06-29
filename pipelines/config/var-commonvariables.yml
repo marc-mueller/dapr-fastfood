@@ -13,8 +13,6 @@ variables:
   value: '1.26.0'
 - name: helmVersion
   value: '3.12.0'
-- name: azureContainerRegistry
-  value: '4taksdemoacr.azurecr.io'
 - name: netCoreAspNetVersion
   value: 9.0.3
 - name: NetCoreSdkVersion

@@ -7,21 +7,35 @@ parameters:
   default: 
 - name: helmVersion
   type: string
-  default: 
+  default: latest
+- name: kubectlVersion
+  type: string
+  default: latest
 - name: chartPath
   type: string
   default: 
 - name: chartVersion
   type: string
   default: '$(Build.BuildNumber)'
+- name: installHelm
+  type: boolean
+  default: true
+- name: installKubectl
+  type: boolean
+  default: true
 
 steps:
-- task: HelmInstaller@0
-  displayName: 'Install Helm ${{ parameters.helmVersion }}'
-  inputs:
-    helmVersion: '${{ parameters.helmVersion }}'
-    checkLatestHelmVersion: false
-    installKubectl: true
+- ${{ if eq(parameters.installKubectl, true) }}:
+  - task: KubectlInstaller@0
+    displayName: 'Install Kubectl ${{ parameters.kubectlVersion }}'
+    inputs:
+      kubectlVersion: '${{ parameters.kubectlVersion }}'
+      
+- ${{ if eq(parameters.installHelm, true) }}:
+  - task: HelmInstaller@1
+    displayName: 'Install Helm ${{ parameters.helmVersion }}'
+    inputs:
+      helmVersionToInstall: '${{ parameters.helmVersion }}'
 
 - task: HelmDeploy@0
   displayName: 'helm package'

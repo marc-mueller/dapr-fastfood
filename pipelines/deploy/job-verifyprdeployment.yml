@@ -1,0 +1,38 @@
+parameters:
+  - name: displayName
+    type: string
+    default: 'Run System Tests'
+  - name: pool
+    type: object
+    default:
+      vmImage: 'ubuntu-latest'
+  - name: container
+    type: string
+    default: ''
+  - name: serviceName
+    type: string
+    default: ''
+  - name: jobName
+    type: string
+    default: 'verifydeployment'
+  - name: dependsOn
+    type: object
+    default: []
+
+jobs:
+  - job: ${{ parameters.jobName }}
+    displayName: "${{ parameters.displayName }}"
+    pool: ${{ parameters.pool }}
+    ${{ if ne(parameters.container, '') }}:
+      container: ${{ parameters.container }}
+    dependsOn: ${{ parameters.dependsOn }}
+    steps:
+      - checkout: none
+      - bash: |
+          echo "Perform system tests."
+        displayName: 'System Tests'
+      - template: ../pullrequest/step-setprstatus.yml
+        parameters:
+          state: 'success'
+          description: '${{ parameters.serviceName }} System Tests Completed Successfully'
+          contextName: 'pr-deployment-${{ parameters.serviceName }}'

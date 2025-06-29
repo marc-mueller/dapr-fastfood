@@ -2,8 +2,8 @@
 # These arguments allow us to easily change the base images if needed.
 ARG IMAGE_NET_ASPNET=mcr.microsoft.com/dotnet/aspnet
 ARG IMAGE_NET_SDK=mcr.microsoft.com/dotnet/sdk
-ARG IMAGE_NET_ASPNET_VERSION=9.0.2
-ARG IMAGE_NET_SDK_VERSION=9.0.200
+ARG IMAGE_NET_ASPNET_VERSION=9.0.3
+ARG IMAGE_NET_SDK_VERSION=9.0.300
 
 # Allow a suffix to be appended to the final ASP.NET image for development customization.
 # This can be overridden at build time with --build-arg ASPNET_SUFFIX=

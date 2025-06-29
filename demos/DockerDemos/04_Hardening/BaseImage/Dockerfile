@@ -2,7 +2,7 @@
 # Stage 1: Build Stage
 # -------------------------------
 # Use the official .NET SDK image to build the application.
-FROM mcr.microsoft.com/dotnet/sdk:9.0.200 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0.300 AS build
 
 # Set the working directory in the build container.
 WORKDIR /src
@@ -24,7 +24,7 @@ RUN dotnet publish "FinanceService/FinanceService.csproj" -c Release -o /app/pub
 # Stage 2: Runtime (Final) Stage
 # -------------------------------
 # Use the official ASP.NET Core runtime image for the final container.
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.2 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.3 AS runtime
 
 # Add metadata labels for maintainability and traceability.
 LABEL maintainer="Your Name <you@example.com>" \

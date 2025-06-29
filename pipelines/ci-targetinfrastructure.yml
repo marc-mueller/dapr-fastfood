@@ -10,6 +10,7 @@ trigger:
       - src/chart/daprenv/**
 
 variables:
+  - template: config/var-pool.yml
   - template: config/var-commonvariables.yml
   - template: config/var-targetinfrastructure.yml
 
@@ -17,7 +18,10 @@ jobs:
 - job: builddaprenv
   displayName: "Build Dapr Environment Helm Chart"
   pool:
-    vmImage: 'ubuntu-latest'
+    ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+      vmImage: ${{ variables['poolVmImage'] }}
+    ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+      name: ${{ variables['buildPoolName'] }}
   steps:
     - checkout: self
       fetchDepth: 0

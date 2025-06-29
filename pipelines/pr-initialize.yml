@@ -1,0 +1,148 @@
+name: pr-initialize
+
+trigger: none
+
+resources:
+  pipelines:
+  - pipeline: CIBuildTargetInfrastructure
+    source: ci-targetinfrastructure
+    branch: main
+  - pipeline: CIBuildOrderService
+    source: ci-orderservice
+    branch: main
+  - pipeline: CIBuildKitchenService
+    source: ci-kitchenservice
+    branch: main
+  - pipeline: CIBuildFinanceService
+    source: ci-financeservice
+    branch: main
+  - pipeline: CIBuildFrontendCustomerOrderStatus
+    source: ci-frontendcustomerorderstatus
+    branch: main
+  - pipeline: CIBuildFrontendKitchenMonitor
+    source: ci-frontendkitchenmonitor
+    branch: main
+  - pipeline: CIBuildFrontendSelfServicePos
+    source: ci-frontendselfservicepos
+    branch: main
+  containers:
+  - container: worker
+    image: $(azureContainerRegistry)/fastfood-buildenv:$(NetCoreSdkVersion)
+    endpoint: 4taksDemoAcr
+
+variables:
+  - template: config/var-pool.yml
+  - template: config/var-commonvariables.yml
+  - template: config/var-commonvariables-release.yml
+  - group: fastfood-releasesecrets  
+
+stages:
+  - stage: initprenv
+    displayName: 'Initialize PR Environment'
+    jobs:
+      - deployment: InitializePR
+        environment: 'fastfood-$(stagename)'
+        displayName: 'Initialize PR Environment'
+        container: worker
+        pool:
+          ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+            vmImage: ${{ variables['poolVmImage'] }}
+          ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+            name: ${{ variables['buildPoolName'] }}
+        variables:
+        - name: stagename
+          value: pr
+        - name: namespace
+          value: $(stagename)-$(System.PullRequest.PullRequestId)
+        - name: redisDB
+          value: $[counter(format('{0:yyyyMM}', pipeline.startTime), 3)]
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: |
+                    echo "##vso[build.updatebuildnumber]$(namespace)"
+                  displayName: 'Update Build Number'
+                - checkout: self
+                  sparseCheckoutDirectories: pipelines/config/pr/dapr pipelines/config/pr/finance pipelines/config/pr/frontendcustomerorderstatus pipelines/config/pr/frontendkitchenmonitor pipelines/config/pr/frontendservicepos pipelines/config/pr/kitchen pipelines/config/pr/order
+                - download: CIBuildTargetInfrastructure
+                - download: CIBuildOrderService
+                - download: CIBuildKitchenService
+                - download: CIBuildFinanceService
+                - download: CIBuildFrontendCustomerOrderStatus
+                - download: CIBuildFrontendKitchenMonitor
+                - download: CIBuildFrontendSelfServicePos
+                - template: deploy/step-deployhelmchart.yml
+                  parameters:
+                    kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
+                    clusterNamespace: '$(namespace)'
+                    chartPath: '$(Pipeline.Workspace)/CIBuildTargetInfrastructure/daprenv/daprenv-$(RESOURCES.PIPELINE.CIBUILDTARGETINFRASTRUCTURE.RUNNAME).tgz'
+                    releaseName: 'daprenv'
+                    releaseValuesFile: 'pipelines/config/pr/dapr/values.yml'
+                    tokenizerSecrets:
+                    - redisPassword
+                    createNamespace: true
+                    deployOnlyIfNotExist: true
+                    installHelm: false
+                    installKubectl: false
+                - template: deploy/step-deployhelmchart.yml
+                  parameters:
+                    kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
+                    clusterNamespace: '$(namespace)'
+                    chartPath: '$(Pipeline.Workspace)/CIBuildOrderService/orderservice/orderservice-$(RESOURCES.PIPELINE.CIBUILDORDERSERVICE.RUNNAME).tgz'
+                    releaseName: 'orderservice'
+                    releaseValuesFile: 'pipelines/config/pr/order/values.yml'
+                    deployOnlyIfNotExist: true
+                    installHelm: false
+                    installKubectl: false
+                - template: deploy/step-deployhelmchart.yml
+                  parameters:
+                    kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
+                    clusterNamespace: '$(namespace)'
+                    chartPath: '$(Pipeline.Workspace)/CIBuildKitchenService/kitchenservice/kitchenservice-$(RESOURCES.PIPELINE.CIBUILDKITCHENSERVICE.RUNNAME).tgz'
+                    releaseName: 'kitchenservice'
+                    releaseValuesFile: 'pipelines/config/pr/kitchen/values.yml'
+                    deployOnlyIfNotExist: true
+                    installHelm: false
+                    installKubectl: false
+                - template: deploy/step-deployhelmchart.yml
+                  parameters:
+                    kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
+                    clusterNamespace: '$(namespace)'
+                    chartPath: '$(Pipeline.Workspace)/CIBuildFinanceService/financeservice/financeservice-$(RESOURCES.PIPELINE.CIBUILDFINANCESERVICE.RUNNAME).tgz'
+                    releaseName: 'financeservice'
+                    releaseValuesFile: 'pipelines/config/pr/finance/values.yml'
+                    deployOnlyIfNotExist: true
+                    installHelm: false
+                    installKubectl: false
+                - template: deploy/step-deployhelmchart.yml
+                  parameters:
+                    kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
+                    clusterNamespace: '$(namespace)'
+                    chartPath: '$(Pipeline.Workspace)/CIBuildFrontendCustomerOrderStatus/frontendcustomerorderstatus/frontendcustomerorderstatus-$(RESOURCES.PIPELINE.CIBUILDFRONTENDCUSTOMERORDERSTATUS.RUNNAME).tgz'
+                    releaseName: 'frontendcustomerorderstatus'
+                    releaseValuesFile: 'pipelines/config/pr/frontendcustomerorderstatus/values.yml'
+                    deployOnlyIfNotExist: true
+                    installHelm: false
+                    installKubectl: false
+                - template: deploy/step-deployhelmchart.yml
+                  parameters:
+                    kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
+                    clusterNamespace: '$(namespace)'
+                    chartPath: '$(Pipeline.Workspace)/CIBuildFrontendKitchenMonitor/frontendkitchenmonitor/frontendkitchenmonitor-$(RESOURCES.PIPELINE.CIBUILDFRONTENDKITCHENMONITOR.RUNNAME).tgz'
+                    releaseName: 'frontendkitchenmonitor'
+                    releaseValuesFile: 'pipelines/config/pr/frontendkitchenmonitor/values.yml'
+                    deployOnlyIfNotExist: true
+                    installHelm: false
+                    installKubectl: false
+                - template: deploy/step-deployhelmchart.yml
+                  parameters:
+                    kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
+                    clusterNamespace: '$(namespace)'
+                    chartPath: '$(Pipeline.Workspace)/CIBuildFrontendSelfServicePos/frontendselfservicepos/frontendselfservicepos-$(RESOURCES.PIPELINE.CIBUILDFRONTENDSELFSERVICEPOS.RUNNAME).tgz'
+                    releaseName: 'frontendselfservicepos'
+                    releaseValuesFile: 'pipelines/config/pr/frontendselfservicepos/values.yml'
+                    deployOnlyIfNotExist: true
+                    installHelm: false
+                    installKubectl: false
+

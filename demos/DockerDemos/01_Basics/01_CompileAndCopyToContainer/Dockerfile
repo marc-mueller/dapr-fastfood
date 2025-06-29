@@ -1,5 +1,5 @@
 # Use the official ASP.NET Core runtime as a parent image
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.2 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.3 AS base
 
 # Set the working directory in the container
 WORKDIR /app

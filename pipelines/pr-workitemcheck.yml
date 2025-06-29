@@ -1,0 +1,69 @@
+trigger: none
+
+variables:
+  - template: config/var-pool.yml
+  - template: config/var-commonvariables.yml
+  - template: config/var-commonvariables-release.yml
+
+resources:
+  # https://dev.azure.com/4tecture-demo/_apis/public/distributedtask/webhooks/fastfoodPrUpdated?api-version=6.0-preview
+  webhooks:
+    - webhook: fastfoodPrUpdated                ### Webhook alias
+      connection: FastfoodPREventsConnection    ### Incoming webhook service connection
+      filters:
+      - path: eventType
+        value: git.pullrequest.updated
+      - path: publisherId
+        value: tfs
+      - path: resource.repository.name
+        value: FastFood
+  containers:
+    - container: worker
+      image: $(azureContainerRegistry)/fastfood-buildenv:$(NetCoreSdkVersion)
+      endpoint: 4taksDemoAcr
+
+jobs:
+  - job: workitemcheck
+    displayName: 'Work Item Check'
+    condition: eq('${{ parameters.fastfoodPrUpdated.resource.status }}', 'active')
+    pool:
+      ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+        vmImage: ${{ variables['poolVmImage'] }}
+      ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+        name: ${{ variables['buildPoolName'] }}
+    steps:
+    - checkout: none
+    - task: Bash@3
+      displayName: 'Check Work Item Descriptions'
+      env:
+        AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      inputs:
+        targetType: 'inline'
+        script: |
+          set -euo pipefail
+          pr_id="${{ parameters.fastfoodPrUpdated.resource.pullRequestId }}"
+          repo_id="${{ parameters.fastfoodPrUpdated.resource.repository.id }}"
+          org_url="${SYSTEM_COLLECTIONURI}"
+          project="${SYSTEM_TEAMPROJECT}"
+
+          # Get work item IDs associated with the PR
+          work_item_ids=$(az repos pr work-item list --id "$pr_id" --org "$org_url" --project "$project" --output tsv --query "[].id")
+
+          all_have_description=true
+          for id in $work_item_ids; do
+            desc=$(az boards work-item show --id $id --org "$org_url" --project "$project" --query "fields['System.Description']" -o tsv)
+            if [ -z "$desc" ]; then
+              all_have_description=false
+              break
+            fi
+          done
+
+          echo "All work items have description: $all_have_description"
+          echo "##vso[task.setvariable variable=wiDescriptionsOk]$all_have_description"
+
+    - template: ../pullrequest/step-setprstatus.yml
+      parameters:
+        contextName: 'fastfood-wi-content-check'
+        state: ${{ if eq(variables['wiDescriptionsOk'], 'true') }}succeeded${{ else }}failed${{ end }}
+        description: ${{ if eq(variables['wiDescriptionsOk'], 'true') }}All work items have a description${{ else }}Some work items are missing a description${{ end }}

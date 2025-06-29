@@ -9,13 +9,26 @@ trigger:
     include:
       - src/services/order/**
 
+resources:
+  containers:
+  - container: worker
+    image: $(azureContainerRegistry)/fastfood-buildenv:$(NetCoreSdkVersion)
+    endpoint: 4taksDemoAcr
+
 variables:
+  - template: config/var-pool.yml
   - template: config/var-commonvariables.yml
   - template: config/var-orderservice.yml
 
 jobs:
   - template: build/job-buildcontainerizedservice.yml
     parameters:
+      pool:
+        ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+          vmImage: ${{ variables['poolVmImage'] }}
+        ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+          name: ${{ variables['buildPoolName'] }}
+      container: worker
       displayName: "Build Order Service"
       dockerFile: '$(dockerFilePath)'
       dockerRepositoryName: '$(dockerRepositoryName)'
@@ -32,7 +45,7 @@ jobs:
       servicePaths:
         - '$(componentPath)'
       serviceTagPrefix: '$(versionTagPrefix)'
-      installMonotag: true
+      installMonotag: false
       updateBuildNumber: true
       nugetFeeds: []
       publishArtifacts:

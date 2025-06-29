@@ -1,5 +1,5 @@
 # Use the official ASP.NET Core runtime as a parent image
-FROM mcr.microsoft.com/dotnet/sdk:9.0.200 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0.300 AS build
 
 # Expose port 8080 for the application
 EXPOSE 8080
@@ -16,7 +16,7 @@ RUN dotnet build "FinanceService/FinanceService.csproj" -c Release
 RUN dotnet publish "FinanceService/FinanceService.csproj" -c Release -o /app/publish
 
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.2 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.3 AS base
 
 WORKDIR /app
 

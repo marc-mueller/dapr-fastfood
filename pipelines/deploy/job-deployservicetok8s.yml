@@ -22,11 +22,24 @@ parameters:
   - name: displayName
     type: string
     default: 'Deploy Service to Kubernetes'
+  - name: pool
+    type: object
+    default:
+      vmImage: 'ubuntu-latest'
+  - name: container
+    type: string
+    default: ''
+  - name: jobName
+    type: string
+    default: 'deploy'
 
 jobs:
-  - deployment: deploy
+  - deployment: ${{ parameters.jobName }}
     displayName: "${{ parameters.displayName }}"
     environment: ${{ parameters.environment }}
+    pool: ${{ parameters.pool }}
+    ${{ if ne(parameters.container, '') }}:
+      container: ${{ parameters.container }}
     strategy:
       runOnce:
         deploy:
@@ -46,3 +59,5 @@ jobs:
                 releaseName: '${{ parameters.artifactName }}'
                 releaseValuesFile: '${{ parameters.valuesFile }}'
                 tokenizerSecrets: ${{ parameters.tokenizerSecrets }}
+                installHelm: false
+                installKubectl: false

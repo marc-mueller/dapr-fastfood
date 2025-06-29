@@ -11,3 +11,5 @@ variables:
   value: '$(Pipeline.Workspace)/CIBuild/$(pipelineArtifactName)/$(serviceName)-$(artifactVersion).tgz'
 - name: releaseSparseCheckoutDirectories
   value: 'pipelines/config/$(stagename)/$(folderNameComponent)'
+- name: nodeVersion
+  value: '22'

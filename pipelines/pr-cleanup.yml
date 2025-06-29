@@ -1,0 +1,43 @@
+trigger: none
+
+variables:
+  - template: config/var-pool.yml
+  - template: config/var-commonvariables.yml
+  - template: config/var-commonvariables-release.yml
+
+resources:
+  # https://dev.azure.com/4tecture-demo/_apis/public/distributedtask/webhooks/fastfoodPrUpdated?api-version=6.0-preview
+  webhooks:
+    - webhook: fastfoodPrUpdated                ### Webhook alias
+      connection: FastfoodPREventsConnection    ### Incoming webhook service connection
+      filters:
+      - path: eventType
+        value: git.pullrequest.updated
+      - path: publisherId
+        value: tfs
+      - path: resource.repository.name
+        value: FastFood
+  containers:
+    - container: worker
+      image: $(azureContainerRegistry)/fastfood-buildenv:$(NetCoreSdkVersion)
+      endpoint: 4taksDemoAcr
+
+jobs:
+  - job: prCleanup
+    displayName: 'PR Cleanup'
+    condition: or(eq('${{ parameters.fastfoodPrUpdated.resource.status }}', 'completed'), eq('${{ parameters.fastfoodPrUpdated.resource.status }}', 'abandoned'))
+    pool:
+      ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+        vmImage: ${{ variables['poolVmImage'] }}
+      ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+        name: ${{ variables['buildPoolName'] }}
+    steps:
+    - checkout: none
+    # Delete the Kubernetes namespace for this PR
+    - task: Kubernetes@1
+      displayName: 'Delete PR Kubernetes Namespace'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceConnection: $(kubernetesDeploymentServiceConnection)
+        command: delete
+        arguments: 'namespace pr-${{ parameters.fastfoodPrUpdated.resource.pullRequestId }}'

@@ -1,5 +1,5 @@
 # Use the official ASP.NET Core runtime as a parent image
-FROM mcr.microsoft.com/dotnet/sdk:9.0.200 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0.300 AS build
 
 # Expose port 8080 for the application
 EXPOSE 8080
@@ -31,7 +31,7 @@ RUN dotnet test --no-build -c Release --results-directory /testresults \
     /p:CoverletOutput=/testresults/coverage/ \
     -p:MergeWith=/testresults/coverage/coverage.json Tests/FinanceService.Unit.Tests/FinanceService.Unit.Tests.csproj
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.2 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.3 AS final
 
 WORKDIR /app
 

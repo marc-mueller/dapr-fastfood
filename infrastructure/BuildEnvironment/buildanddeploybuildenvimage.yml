@@ -1,0 +1,43 @@
+name : buildanddeploybuildenvimage
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - infrastructure/BuildEnvironment/**
+resources:
+- repo: self
+
+variables:
+  - template: ../../pipelines/config/var-pool.yml
+  - template: ../../pipelines/config/var-commonvariables.yml
+
+stages:
+- stage: Build
+  displayName: Build image
+  jobs:  
+  - job: Build
+    displayName: Build and push Docker image
+    pool:
+      ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+        vmImage: ${{ variables['poolVmImage'] }}
+      ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+        name: ${{ variables['buildPoolName'] }}
+    steps:
+    - task: Docker@2
+      inputs:
+        containerRegistry: $(azureContainerRegistryServiceConnection)
+        repository: 'fastfood-buildenv'
+        command: 'buildAndPush'
+        Dockerfile: 'infrastructure/BuildEnvironment/Dockerfile'
+        buildArguments: |
+          NET_CORE_SDK_VERSION=$(NetCoreSdkVersion)
+          NODE_VERSION=$(nodeVersion)
+          POWERSHELL_VERSION=7.4.10
+          KUBECTL_VERSION=$(kubectlVersion)
+          HELM_VERSION=$(helmVersion)
+        tags: |
+          latest
+          $(NetCoreSdkVersion)
+      displayName: 'Build and push the Docker image'

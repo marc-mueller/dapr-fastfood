@@ -1,0 +1,12 @@
+variables:
+  - name: poolMode
+    #value: 'HostedAgent' 
+    value: 'CustomPool' 
+  - name: buildPoolName
+    value: 'DemoMDP'
+  - name: releasePoolDevTestName
+    value: 'DemoMDP'
+  - name: releasePoolProdName
+    value: 'DemoMDP'
+  - name: poolVmImage
+    value: 'ubuntu-latest'

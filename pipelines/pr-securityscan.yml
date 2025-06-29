@@ -1,0 +1,30 @@
+trigger: none
+
+resources:
+  containers:
+  - container: worker
+    image: $(azureContainerRegistry)/fastfood-buildenv:$(NetCoreSdkVersion)
+    endpoint: 4taksDemoAcr
+
+variables:
+  - template: config/var-pool.yml
+
+jobs:
+- job: PRSecurityScan
+  displayName: 'PR Security Scan'
+  pool:
+    ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+      vmImage: ${{ variables['poolVmImage'] }}
+    ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+      name: ${{ variables['buildPoolName'] }}
+  container: worker
+  steps:
+    - checkout: none
+    - bash: |
+        echo "Perform security scan steps here."
+      displayName: 'No Steps for PR Trigger'
+    - template: pullrequest/step-setprstatus.yml
+      parameters:
+        state: 'success'
+        description: 'PR Security Scan Completed Successfully'
+        contextName: 'fastfood-security-scan'

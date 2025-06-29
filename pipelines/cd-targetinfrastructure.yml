@@ -14,15 +14,14 @@ resources:
         - hotfix/*
         - pull/*
         - refs/pull/*
-  # containers:
-  # - container: worker
-  #   image: 4taksdemoacr.azurecr.io/linuxworker:latest
-  #   endpoint: 4taksDemoAcr
+  containers:
+    - container: worker
+      image: $(azureContainerRegistry)/fastfood-buildenv:$(NetCoreSdkVersion)
+      endpoint: 4taksDemoAcr
 
-pool:
-  vmImage: 'ubuntu-latest'
 
 variables:
+  - template: config/var-pool.yml
   - template: config/var-commonvariables.yml
   - template: config/var-commonvariables-release.yml
   - template: config/var-targetinfrastructure.yml
@@ -49,6 +48,11 @@ stages:
           sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
           tokenizerSecrets:
             - redisPassword
+          pool:
+            ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+              vmImage: ${{ variables['poolVmImage'] }}
+            ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+              name: ${{ variables['buildPoolName'] }}
 
   - stage: Production
     dependsOn: Staging
@@ -71,12 +75,18 @@ stages:
           sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
           tokenizerSecrets:
             - redisPassword
+          pool:
+            ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+              vmImage: ${{ variables['poolVmImage'] }}
+            ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+              name: ${{ variables['buildPoolName'] }}
 
   - stage: PullRequest
-    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+    dependsOn: []
+    condition: and(succeeded(), ne(variables['System.PullRequest.PullRequestId'], ''))
     variables:
       - name: stagename
-        value: staging
+        value: pr
       - name: namespace
         value: $(stagename)-$(System.PullRequest.PullRequestId)
     jobs:
@@ -92,3 +102,8 @@ stages:
           sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
           tokenizerSecrets:
             - redisPassword
+          pool:
+            ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+              vmImage: ${{ variables['poolVmImage'] }}
+            ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+              name: ${{ variables['buildPoolName'] }}
