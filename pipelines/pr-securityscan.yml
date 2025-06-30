@@ -8,6 +8,7 @@ resources:
 
 variables:
   - template: config/var-pool.yml
+  - template: config/var-commonvariables.yml
 
 jobs:
 - job: PRSecurityScan

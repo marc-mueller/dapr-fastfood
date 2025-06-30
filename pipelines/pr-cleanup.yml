@@ -38,6 +38,6 @@ jobs:
       displayName: 'Delete PR Kubernetes Namespace'
       inputs:
         connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceConnection: $(kubernetesDeploymentServiceConnection)
+        kubernetesServiceEndpoint: $(kubernetesDeploymentServiceConnection)
         command: delete
         arguments: 'namespace pr-${{ parameters.fastfoodPrUpdated.resource.pullRequestId }}'
