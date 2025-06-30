@@ -167,6 +167,7 @@ parameters:
       blocking: true
       queueOnlyOnSrcUpdate: false
       validForMins: 1440
+
     - ciName: 'pr-securityscan'
       displayName: 'PR Security Scan'
       blocking: true

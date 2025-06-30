@@ -82,7 +82,7 @@ stages:
 
   - stage: PullRequest
     dependsOn: []
-    #condition: and(succeeded(), ne(variables['System.PullRequest.PullRequestId'], ''))    
+    condition: and(succeeded(), ne(variables['System.PullRequest.PullRequestId'], ''))    
     variables:
       - name: stagename
         value: pr
