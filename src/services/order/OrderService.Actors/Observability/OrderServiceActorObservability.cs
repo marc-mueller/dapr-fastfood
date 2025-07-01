@@ -7,15 +7,15 @@ internal class OrderServiceActorObservability : ObservabilityBase, IOrderService
 {
     internal OrderServiceActorObservability(string serviceName, string activitySourceName) : base(serviceName, activitySourceName, typeof(OrderServiceActorObservability).Assembly.GetName().Version?.ToString())
     {
-        OrdersCreatedCounter = Meter.CreateCounter<long>("orderservice.orders.created", description: "Number of orders created");
-        OrdersPaidCounter = Meter.CreateCounter<long>( "orderservice.orders.paid", description: "Number of orders paid");
-        OrdersClosedCounter = Meter.CreateCounter<long>("orderservice.orders.closed", description: "Number of orders served or closed (delivered or served)");
-        OrderItemsCount = Meter.CreateHistogram<long>("orderservice.orders.item_count", unit: "items", description: "Number of items per order");
-        OrderTotalAmount = Meter.CreateHistogram<decimal>( "orderservice.orders.total_amount", unit: "currency", description: "Total amount of the order in currency units");
-        OrderSalesDuration = Meter.CreateHistogram<double>("orderservice.orders.sales.duration_milliseconds", unit: "ms", description: "Duration from creation to payment confirmation");
-        OrderPerparationDuration = Meter.CreateHistogram<double>("orderservice.orders.preparation.duration_milliseconds", unit: "ms", description: "Time taken to prepare the entire order");
-        OrderDeliveryDuration = Meter.CreateHistogram<double>("orderservice.orders.delivery.duration_milliseconds", unit: "ms", description: "Time taken to deliver the order");
-        OrderTotalDuration = Meter.CreateHistogram<double>("orderservice.orders.total.duration_milliseconds", unit: "ms", description: "Total time from creation to closed/completed");
+        OrdersCreatedCounter = Meter.CreateCounter<long>("orderservice_orders_created", description: "Number of orders created");
+        OrdersPaidCounter = Meter.CreateCounter<long>( "orderservice_orders_paid", description: "Number of orders paid");
+        OrdersClosedCounter = Meter.CreateCounter<long>("orderservice_orders_closed", description: "Number of orders served or closed (delivered or served)");
+        OrderItemsCount = Meter.CreateHistogram<long>("orderservice_orders_item_count", unit: "items", description: "Number of items per order");
+        OrderTotalAmount = Meter.CreateHistogram<decimal>( "orderservice_orders_total_amount", unit: "currency", description: "Total amount of the order in currency units");
+        OrderSalesDuration = Meter.CreateHistogram<double>("orderservice_orders_sales_duration_milliseconds", unit: "ms", description: "Duration from creation to payment confirmation");
+        OrderPerparationDuration = Meter.CreateHistogram<double>("orderservice_orders_preparation_duration_milliseconds", unit: "ms", description: "Time taken to prepare the entire order");
+        OrderDeliveryDuration = Meter.CreateHistogram<double>("orderservice_orders_delivery_duration_milliseconds", unit: "ms", description: "Time taken to deliver the order");
+        OrderTotalDuration = Meter.CreateHistogram<double>("orderservice_orders_total_duration_milliseconds", unit: "ms", description: "Total time from creation to closed/completed");
     }
     
     public Histogram<decimal> OrderTotalAmount { get; }
