@@ -1,5 +1,8 @@
 # azure-pipelines/templates/pr-status.yml
 parameters:
+  - name: pullRequestId
+    type: string
+    default: '$(System.PullRequest.PullRequestId)'
   - name: contextName
     type: string
   - name: state
@@ -25,7 +28,7 @@ steps:
 #     state: 'succeeded'
 #     description: '${{ parameters.description }}'
 #     useDefined: true
-#     pullRequestId: $(System.PullRequest.PullRequestId)
+#     pullRequestId: ${{ parameters.pullRequestId }}
 - task: Bash@3
   displayName: "Set PR status: ${{ parameters.contextName }} → ${{ parameters.state }}"
   env:
@@ -37,7 +40,7 @@ steps:
 
       # ---------- derive API route ----------
       baseUrl="${SYSTEM_TEAMFOUNDATIONCOLLECTIONURI}${SYSTEM_TEAMPROJECT}"
-      statusUrl="$baseUrl/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${SYSTEM_PULLREQUEST_PULLREQUESTID}/statuses?api-version=7.1"
+      statusUrl="$baseUrl/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${{ parameters.pullRequestId }}/statuses?api-version=7.1"
 
       # ---------- choose targetUrl ----------
       if [ -n "${{ parameters.targetUrl }}" ]; then

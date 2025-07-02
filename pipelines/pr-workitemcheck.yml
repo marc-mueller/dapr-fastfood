@@ -71,6 +71,7 @@ jobs:
 
     - template: pullrequest/step-setprstatus.yml
       parameters:
+        pullRequestId: ${{ parameters.fastfoodPrUpdated.resource.pullRequestId }}
         contextName: 'fastfood-wi-content-check'
         state: $(prState)
         description: $(prDescription)

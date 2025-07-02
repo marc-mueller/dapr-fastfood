@@ -26,6 +26,6 @@ jobs:
       displayName: 'No Steps for PR Trigger'
     - template: pullrequest/step-setprstatus.yml
       parameters:
-        state: 'success'
+        state: 'succeeded'
         description: 'PR Security Scan Completed Successfully'
         contextName: 'fastfood-security-scan'
