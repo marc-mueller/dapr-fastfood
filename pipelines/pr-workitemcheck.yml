@@ -61,7 +61,7 @@ jobs:
           echo "All work items have description: $all_have_description"
           echo "##vso[task.setvariable variable=wiDescriptionsOk]$all_have_description"
 
-          if [[ "$wiDescriptionsOk" == "true" ]]; then
+          if [[ "$all_have_description" == "true" ]]; then
             echo "##vso[task.setvariable variable=prState]succeeded"
             echo "##vso[task.setvariable variable=prDescription]All work items have a description"
           else
