@@ -58,14 +58,33 @@ steps:
       else
         COUNTER=$(printf "%03d" $((PR_COUNT - 1)))
       fi
-      # Use branch name as prerelease id
-      BRANCH_ID=$(echo "$BUILD_SOURCEBRANCHNAME" | tr '[:upper:]' '[:lower:]' | tr -c '[:alnum:]' '-' | sed -E 's/-+/-/g; s/^-|-$//g' | cut -c1-8)
-      # Only add prerelease for non-main and non-release/* branches
-      if [[ "$BRANCH_ID" == "main" || "$BRANCH_ID" == release* ]]; then
-        VERSION="$BASE_VERSION"
+      # Check if we're in a PR build
+      if [[ -n "$(System.PullRequest.PullRequestId)" ]]; then
+        echo "Pull Request build detected: PR #$(System.PullRequest.PullRequestId), Iteration $(System.PullRequest.PullRequestIteration)"
+        
+        # Extract branch name from source branch ref
+        SOURCE_BRANCH=$(echo "$(System.PullRequest.SourceBranch)" | sed -E 's|^refs/heads/||')
+        # Get the part after the last slash, or the whole branch name if no slash
+        BRANCH_SUFFIX=$(echo "$SOURCE_BRANCH" | sed -E 's|.*/||')
+        # Process the branch suffix to get a clean, meaningful identifier (max 8 chars)
+        PR_BRANCH_ID=$(echo "$BRANCH_SUFFIX" | tr '[:upper:]' '[:lower:]' | tr -c '[:alnum:]' '-' | sed -E 's/-+/-/g; s/^-|-$//g' | cut -c1-8)
+        
+        # Create PR-specific version with iteration number
+        VERSION="$BASE_VERSION-pr-$PR_BRANCH_ID-$(System.PullRequest.PullRequestIteration)"
       else
-        VERSION="$BASE_VERSION-$BRANCH_ID-$COUNTER"
+        # Use branch name as prerelease id for non-PR builds
+        # Get the part after the last slash, or the whole branch name if no slash
+        BRANCH_SUFFIX=$(echo "$BUILD_SOURCEBRANCHNAME" | sed -E 's|.*/||')
+        # Process the branch suffix to get a clean, meaningful identifier (max 8 chars)
+        BRANCH_ID=$(echo "$BRANCH_SUFFIX" | tr '[:upper:]' '[:lower:]' | tr -c '[:alnum:]' '-' | sed -E 's/-+/-/g; s/^-|-$//g' | cut -c1-8)
+        # Only add prerelease for non-main and non-release/* branches
+        if [[ "$BRANCH_ID" == "main" || "$BRANCH_ID" == release* ]]; then
+          VERSION="$BASE_VERSION"
+        else
+          VERSION="$BASE_VERSION-$BRANCH_ID-$COUNTER"
+        fi
       fi
+      
       echo "##vso[task.setvariable variable=Version;isOutput=true]$VERSION"
       echo "Calculated version: $VERSION"
       # Optionally update build number

@@ -27,7 +27,7 @@ rules:
 - apiGroups: [""]
   resources:
     - namespaces
-  verbs: ["create", "get", "list", "watch"]
+  verbs: ["*"]
   # allow binding roles within a namespace if your charts set up any RoleBindings
 - apiGroups: ["rbac.authorization.k8s.io"]
   resources:

@@ -42,12 +42,12 @@ stages:
           container: worker
           environment: 'fastfood-$(stagename)'
           namespace: '$(namespace)'
-          valuesFile: '$(helmValuesOverwritesFile)'
+          valuesFile: '$(helmChartArtifactValuesFileDownloadPath)'
           artifactName: '$(pipelineArtifactName)'
           chartPackage: '$(helmChartArtifactDownloadPath)'
           kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
           updateBuildNumber: true
-          sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+          
           pool:
             ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
               vmImage: ${{ variables['poolVmImage'] }}
@@ -68,12 +68,12 @@ stages:
           container: worker
           environment: 'fastfood-$(stagename)'
           namespace: '$(namespace)'
-          valuesFile: '$(helmValuesOverwritesFile)'
+          valuesFile: '$(helmChartArtifactValuesFileDownloadPath)'
           artifactName: '$(pipelineArtifactName)'
           chartPackage: '$(helmChartArtifactDownloadPath)'
           kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
           updateBuildNumber: true
-          sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+          
           pool:
             ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
               vmImage: ${{ variables['poolVmImage'] }}
@@ -96,12 +96,12 @@ stages:
           container: worker
           environment: 'fastfood-$(stagename)'
           namespace: '$(namespace)'
-          valuesFile: '$(helmValuesOverwritesFile)'
+          valuesFile: '$(helmChartArtifactValuesFileDownloadPath)'
           artifactName: '$(pipelineArtifactName)'
           chartPackage: '$(helmChartArtifactDownloadPath)'
           kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
           updateBuildNumber: true
-          sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+          
           pool:
             ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
               vmImage: ${{ variables['poolVmImage'] }}

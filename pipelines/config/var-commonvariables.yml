@@ -17,6 +17,8 @@ variables:
   value: 9.0.3
 - name: NetCoreSdkVersion
   value: 9.0.300
+- name: nodeVersion
+  value: '22'
 
 - name: dockerFilePath
   value: 'src/services/$(folderNameComponent)/$(folderNameService)/Dockerfile'
@@ -24,5 +26,3 @@ variables:
   value: 'src/services/$(folderNameComponent)/$(folderNameService)/chart/$(serviceName)'
 - name: componentPath
   value: 'src/services/$(folderNameComponent)'
-- name: helmValuesOverwritesFile
-  value: 'pipelines/config/$(stagename)/$(folderNameComponent)/values.yml'

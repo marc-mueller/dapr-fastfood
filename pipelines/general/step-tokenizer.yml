@@ -18,6 +18,9 @@ parameters:
   - name: secrets
     type: object
     default: []
+  - name: condition
+    type: string
+    default: 'succeeded()'
 
 steps:
   - script: |
@@ -54,3 +57,4 @@ steps:
       ${{ if parameters.secrets }}:
         ${{ each secret in parameters.secrets }}:
           ${{ secret }}: $(${{ secret }})
+    condition: ${{ parameters.condition }}

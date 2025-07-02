@@ -49,6 +49,8 @@ stages:
             vmImage: ${{ variables['poolVmImage'] }}
           ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
             name: ${{ variables['buildPoolName'] }}
+            demands:
+            - Priority -equals High
         variables:
         - name: stagename
           value: pr
@@ -63,15 +65,54 @@ stages:
                 - script: |
                     echo "##vso[build.updatebuildnumber]$(namespace)"
                   displayName: 'Update Build Number'
+                # Setup Helm authentication
+                - task: HelmDeploy@0
+                  displayName: 'Setup Helm Authentication'
+                  inputs:
+                    connectionType: 'Kubernetes Service Connection'
+                    kubernetesServiceConnection: $(kubernetesDeploymentServiceConnection)
+                    command: 'login'
+                  condition: succeeded()
+
+                # Check if releases exist in one step
+                - bash: |
+                    # Define all releases to check
+                    RELEASES=("daprenv" "orderservice" "kitchenservice" "financeservice" "frontendcustomerorderstatus" "frontendkitchenmonitor" "frontendselfservicepos")
+                    
+                    # Get list of existing releases in the namespace
+                    echo "Checking for existing Helm releases in namespace $(namespace)..."
+                    EXISTING_RELEASES=$(helm list -n $(namespace) -q)
+                    
+                    # Check each release and set variables
+                    for RELEASE in "${RELEASES[@]}"
+                    do
+                      if echo "$EXISTING_RELEASES" | grep -q "^$RELEASE$"; then
+                        echo "Release $RELEASE already exists in namespace $(namespace)"
+                        echo "##vso[task.setvariable variable=${RELEASE}_EXISTS]true"
+                      else
+                        echo "Release $RELEASE does not exist in namespace $(namespace)"
+                        echo "##vso[task.setvariable variable=${RELEASE}_EXISTS]false"
+                      fi
+                    done
+                  displayName: 'Check Existing Helm Releases'
+                
                 - checkout: self
-                  sparseCheckoutDirectories: pipelines/config/pr/dapr pipelines/config/pr/finance pipelines/config/pr/frontendcustomerorderstatus pipelines/config/pr/frontendkitchenmonitor pipelines/config/pr/frontendservicepos pipelines/config/pr/kitchen pipelines/config/pr/order
+                  sparseCheckoutDirectories: pipelines/config/pr/dapr pipelines/config/pr/finance pipelines/config/pr/frontendcustomerorderstatus pipelines/config/pr/frontendkitchenmonitor pipelines/config/pr/frontendselfservicepos pipelines/config/pr/kitchen pipelines/config/pr/order
                 - download: CIBuildTargetInfrastructure
+                  condition: and(succeeded(), not(eq(variables['daprenv_EXISTS'], 'true')))
                 - download: CIBuildOrderService
+                  condition: and(succeeded(), not(eq(variables['orderservice_EXISTS'], 'true')))
                 - download: CIBuildKitchenService
+                  condition: and(succeeded(), not(eq(variables['kitchenservice_EXISTS'], 'true')))
                 - download: CIBuildFinanceService
+                  condition: and(succeeded(), not(eq(variables['financeservice_EXISTS'], 'true')))
                 - download: CIBuildFrontendCustomerOrderStatus
+                  condition: and(succeeded(), not(eq(variables['frontendcustomerorderstatus_EXISTS'], 'true')))
                 - download: CIBuildFrontendKitchenMonitor
+                  condition: and(succeeded(), not(eq(variables['frontendkitchenmonitor_EXISTS'], 'true')))
                 - download: CIBuildFrontendSelfServicePos
+                  condition: and(succeeded(), not(eq(variables['frontendselfservicepos_EXISTS'], 'true')))
+                
                 - template: deploy/step-deployhelmchart.yml
                   parameters:
                     kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
@@ -81,10 +122,14 @@ stages:
                     releaseValuesFile: 'pipelines/config/pr/dapr/values.yml'
                     tokenizerSecrets:
                     - redisPassword
-                    createNamespace: true
-                    deployOnlyIfNotExist: true
+                    condition: and(succeeded(), not(eq(variables['daprenv_EXISTS'], 'true')))
                     installHelm: false
                     installKubectl: false
+                    createNamespace: true
+                
+                - script: |
+                    echo "##vso[task.setvariable variable=artifactVersion]$(RESOURCES.PIPELINE.CIBUILDORDERSERVICE.RUNNAME)"
+                  displayName: 'Update artifact Version for Order Service for tokenizer task'
                 - template: deploy/step-deployhelmchart.yml
                   parameters:
                     kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
@@ -92,9 +137,13 @@ stages:
                     chartPath: '$(Pipeline.Workspace)/CIBuildOrderService/orderservice/orderservice-$(RESOURCES.PIPELINE.CIBUILDORDERSERVICE.RUNNAME).tgz'
                     releaseName: 'orderservice'
                     releaseValuesFile: 'pipelines/config/pr/order/values.yml'
-                    deployOnlyIfNotExist: true
+                    condition: and(succeeded(), not(eq(variables['orderservice_EXISTS'], 'true')))
                     installHelm: false
                     installKubectl: false
+                
+                - script: |
+                    echo "##vso[task.setvariable variable=artifactVersion]$(RESOURCES.PIPELINE.CIBUILDKITCHENSERVICE.RUNNAME)"
+                  displayName: 'Update artifact Version for Kitchen Service for tokenizer task'
                 - template: deploy/step-deployhelmchart.yml
                   parameters:
                     kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
@@ -102,9 +151,13 @@ stages:
                     chartPath: '$(Pipeline.Workspace)/CIBuildKitchenService/kitchenservice/kitchenservice-$(RESOURCES.PIPELINE.CIBUILDKITCHENSERVICE.RUNNAME).tgz'
                     releaseName: 'kitchenservice'
                     releaseValuesFile: 'pipelines/config/pr/kitchen/values.yml'
-                    deployOnlyIfNotExist: true
+                    condition: and(succeeded(), not(eq(variables['kitchenservice_EXISTS'], 'true')))
                     installHelm: false
                     installKubectl: false
+                
+                - script: |
+                    echo "##vso[task.setvariable variable=artifactVersion]$(RESOURCES.PIPELINE.CIBUILDFINANCESERVICE.RUNNAME)"
+                  displayName: 'Update artifact Version for Finance Service for tokenizer task'
                 - template: deploy/step-deployhelmchart.yml
                   parameters:
                     kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
@@ -112,9 +165,13 @@ stages:
                     chartPath: '$(Pipeline.Workspace)/CIBuildFinanceService/financeservice/financeservice-$(RESOURCES.PIPELINE.CIBUILDFINANCESERVICE.RUNNAME).tgz'
                     releaseName: 'financeservice'
                     releaseValuesFile: 'pipelines/config/pr/finance/values.yml'
-                    deployOnlyIfNotExist: true
+                    condition: and(succeeded(), not(eq(variables['financeservice_EXISTS'], 'true')))
                     installHelm: false
                     installKubectl: false
+                
+                - script: |
+                    echo "##vso[task.setvariable variable=artifactVersion]$(RESOURCES.PIPELINE.CIBUILDFRONTENDCUSTOMERORDERSTATUS.RUNNAME)"
+                  displayName: 'Update artifact Version for Frontend Customer Order Status for tokenizer task'
                 - template: deploy/step-deployhelmchart.yml
                   parameters:
                     kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
@@ -122,9 +179,13 @@ stages:
                     chartPath: '$(Pipeline.Workspace)/CIBuildFrontendCustomerOrderStatus/frontendcustomerorderstatus/frontendcustomerorderstatus-$(RESOURCES.PIPELINE.CIBUILDFRONTENDCUSTOMERORDERSTATUS.RUNNAME).tgz'
                     releaseName: 'frontendcustomerorderstatus'
                     releaseValuesFile: 'pipelines/config/pr/frontendcustomerorderstatus/values.yml'
-                    deployOnlyIfNotExist: true
+                    condition: and(succeeded(), not(eq(variables['frontendcustomerorderstatus_EXISTS'], 'true')))
                     installHelm: false
                     installKubectl: false
+                
+                - script: |
+                    echo "##vso[task.setvariable variable=artifactVersion]$(RESOURCES.PIPELINE.CIBUILDFRONTENDKITCHENMONITOR.RUNNAME)"
+                  displayName: 'Update artifact Version for Frontend Kitchen Monitor for tokenizer task'
                 - template: deploy/step-deployhelmchart.yml
                   parameters:
                     kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
@@ -132,9 +193,13 @@ stages:
                     chartPath: '$(Pipeline.Workspace)/CIBuildFrontendKitchenMonitor/frontendkitchenmonitor/frontendkitchenmonitor-$(RESOURCES.PIPELINE.CIBUILDFRONTENDKITCHENMONITOR.RUNNAME).tgz'
                     releaseName: 'frontendkitchenmonitor'
                     releaseValuesFile: 'pipelines/config/pr/frontendkitchenmonitor/values.yml'
-                    deployOnlyIfNotExist: true
+                    condition: and(succeeded(), not(eq(variables['frontendkitchenmonitor_EXISTS'], 'true')))
                     installHelm: false
                     installKubectl: false
+                
+                - script: |
+                    echo "##vso[task.setvariable variable=artifactVersion]$(RESOURCES.PIPELINE.CIBUILDFRONTENDSELFSERVICEPOS.RUNNAME)"
+                  displayName: 'Update artifact Version for Frontend POS for tokenizer task'
                 - template: deploy/step-deployhelmchart.yml
                   parameters:
                     kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
@@ -142,7 +207,7 @@ stages:
                     chartPath: '$(Pipeline.Workspace)/CIBuildFrontendSelfServicePos/frontendselfservicepos/frontendselfservicepos-$(RESOURCES.PIPELINE.CIBUILDFRONTENDSELFSERVICEPOS.RUNNAME).tgz'
                     releaseName: 'frontendselfservicepos'
                     releaseValuesFile: 'pipelines/config/pr/frontendselfservicepos/values.yml'
-                    deployOnlyIfNotExist: true
+                    condition: and(succeeded(), not(eq(variables['frontendselfservicepos_EXISTS'], 'true')))
                     installHelm: false
                     installKubectl: false
 

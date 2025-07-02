@@ -62,8 +62,16 @@ jobs:
           echo "All work items have description: $all_have_description"
           echo "##vso[task.setvariable variable=wiDescriptionsOk]$all_have_description"
 
-    - template: ../pullrequest/step-setprstatus.yml
+          if [[ "$wiDescriptionsOk" == "true" ]]; then
+            echo "##vso[task.setvariable variable=prState]succeeded"
+            echo "##vso[task.setvariable variable=prDescription]All work items have a description"
+          else
+            echo "##vso[task.setvariable variable=prState]failed"
+            echo "##vso[task.setvariable variable=prDescription]Some work items are missing a description"
+          fi
+
+    - template: pullrequest/step-setprstatus.yml
       parameters:
         contextName: 'fastfood-wi-content-check'
-        state: ${{ if eq(variables['wiDescriptionsOk'], 'true') }}succeeded${{ else }}failed${{ end }}
-        description: ${{ if eq(variables['wiDescriptionsOk'], 'true') }}All work items have a description${{ else }}Some work items are missing a description${{ end }}
+        state: $(prState)
+        description: $(prDescription)

@@ -1,5 +1,4 @@
 trigger: none          # run on demand (manual or scheduled)
-pr: none
 
 parameters:
 # -------------------------------------------------------------------
@@ -49,19 +48,23 @@ parameters:
     allowRebaseMerge: false
 
 # -------------------------------------------------------------------
-# micro-services (array of objects)
+# services (array of objects)
 # -------------------------------------------------------------------
-- name: microservices
+- name: services
   type: object
   default:
     - name: orderservice
       ciName: 'ci-orderservice'
       pathFilters:
         - '/src/services/order/*'
-        - '/src/pipelines/ci-orderservice.yml'
-        - '/src/pipelines/cd-orderservice.yml'
-        - '/src/pipelines/config/**'
-        - '/src/pipelines/templates/**'
+        - '/pipelines/ci-orderservice.yml'
+        - '/pipelines/cd-orderservice.yml'
+        - '/pipelines/config/*'
+        - '/pipelines/build/*'
+        - '/pipelines/deploy/*'
+        - '/pipelines/general/*'
+        - '/pipelines/pullrequest/*'
+        - '/pipelines/test/*'
       blocking: true
       queueOnlyOnSrcUpdate: true
       validForMins: 720
@@ -75,10 +78,14 @@ parameters:
       ciName: 'ci-kitchenservice'
       pathFilters:
         - '/src/services/kitchen/*'
-        - '/src/pipelines/ci-kitchenservice.yml'
-        - '/src/pipelines/cd-kitchenservice.yml'
-        - '/src/pipelines/config/**'
-        - '/src/pipelines/templates/**'
+        - '/pipelines/ci-kitchenservice.yml'
+        - '/pipelines/cd-kitchenservice.yml'
+        - '/pipelines/config/*'
+        - '/pipelines/build/*'
+        - '/pipelines/deploy/*'
+        - '/pipelines/general/*'
+        - '/pipelines/pullrequest/*'
+        - '/pipelines/test/*'
       blocking: true
       queueOnlyOnSrcUpdate: true
       validForMins: 720
@@ -92,10 +99,14 @@ parameters:
       ciName: 'ci-financeservice'
       pathFilters:
         - '/src/services/finance/*'
-        - '/src/pipelines/ci-financeservice.yml'
-        - '/src/pipelines/cd-financeservice.yml'
-        - '/src/pipelines/config/**'
-        - '/src/pipelines/templates/**'
+        - '/pipelines/ci-financeservice.yml'
+        - '/pipelines/cd-financeservice.yml'
+        - '/pipelines/config/*'
+        - '/pipelines/build/*'
+        - '/pipelines/deploy/*'
+        - '/pipelines/general/*'
+        - '/pipelines/pullrequest/*'
+        - '/pipelines/test/*'
       blocking: true
       queueOnlyOnSrcUpdate: true
       validForMins: 720
@@ -109,10 +120,14 @@ parameters:
       ciName: 'ci-frontendcustomerorderstatus'
       pathFilters:
         - '/src/services/frontendcustomerorderstatus/*'
-        - '/src/pipelines/ci-frontendcustomerorderstatus.yml'
-        - '/src/pipelines/cd-frontendcustomerorderstatus.yml'
-        - '/src/pipelines/config/**'
-        - '/src/pipelines/templates/**'
+        - '/pipelines/ci-frontendcustomerorderstatus.yml'
+        - '/pipelines/cd-frontendcustomerorderstatus.yml'
+        - '/pipelines/config/*'
+        - '/pipelines/build/*'
+        - '/pipelines/deploy/*'
+        - '/pipelines/general/*'
+        - '/pipelines/pullrequest/*'
+        - '/pipelines/test/*'
       blocking: true
       queueOnlyOnSrcUpdate: true
       validForMins: 720
@@ -126,10 +141,14 @@ parameters:
       ciName: 'ci-frontendkitchenmonitor'
       pathFilters:
         - '/src/services/frontendkitchenmonitor/*'
-        - '/src/pipelines/ci-frontendkitchenmonitor.yml'
-        - '/src/pipelines/cd-frontendkitchenmonitor.yml'
-        - '/src/pipelines/config/**'
-        - '/src/pipelines/templates/**'
+        - '/pipelines/ci-frontendkitchenmonitor.yml'
+        - '/pipelines/cd-frontendkitchenmonitor.yml'
+        - '/pipelines/config/*'
+        - '/pipelines/build/*'
+        - '/pipelines/deploy/*'
+        - '/pipelines/general/*'
+        - '/pipelines/pullrequest/*'
+        - '/pipelines/test/*'
       blocking: true
       queueOnlyOnSrcUpdate: true
       validForMins: 720
@@ -143,10 +162,14 @@ parameters:
       ciName: 'ci-frontendselfservicepos'
       pathFilters:
         - '/src/services/frontendselfservicepos/*'
-        - '/src/pipelines/ci-frontendselfservicepos.yml'
-        - '/src/pipelines/cd-frontendselfservicepos.yml'
-        - '/src/pipelines/config/**'
-        - '/src/pipelines/templates/**'
+        - '/pipelines/ci-frontendselfservicepos.yml'
+        - '/pipelines/cd-frontendselfservicepos.yml'
+        - '/pipelines/config/*'
+        - '/pipelines/build/*'
+        - '/pipelines/deploy/*'
+        - '/pipelines/general/*'
+        - '/pipelines/pullrequest/*'
+        - '/pipelines/test/*'
       blocking: true
       queueOnlyOnSrcUpdate: true
       validForMins: 720
@@ -165,7 +188,7 @@ parameters:
     - ciName: 'pr-initialize'
       displayName: 'PR Environment Initialization'
       blocking: true
-      queueOnlyOnSrcUpdate: false
+      queueOnlyOnSrcUpdate: true
       validForMins: 1440
 
     - ciName: 'pr-securityscan'
@@ -184,6 +207,32 @@ parameters:
       name:  'fastfood-wi-content-check'
       displayName: 'Work Item Content Check'
       blocking: true
+
+# -------------------------------------------------------------------
+# automatically included reviewers (array of objects)
+# -------------------------------------------------------------------
+- name: autoIncludedReviewers
+  type: object
+  default:
+    - displayName: 'Backend Development Team'     # Used for script logging only, not in the actual policy
+      groupName: '[k8sDemo]\Backend Developers'   # Name of the security group in Azure DevOps (will be resolved to ID)
+      pathFilters:
+        - '/src/services/order/*'
+        - '/src/services/kitchen/*'
+        - '/src/services/finance/*'
+      isRequiredReview: true
+      canReviewOwnChanges: false
+      messageText: 'Please review the backend changes'
+      
+    - displayName: 'Frontend Development Team'    # Used for script logging only, not in the actual policy
+      groupName: '[k8sDemo]\Frontend Developers'  # Name of the security group in Azure DevOps (will be resolved to ID)
+      pathFilters:
+        - '/src/services/frontendcustomerorderstatus/*'
+        - '/src/services/frontendkitchenmonitor/*'
+        - '/src/services/frontendselfservicepos/*'
+      isRequiredReview: false
+      canReviewOwnChanges: false
+      messageText: 'Please review the frontend changes'
 
 pool:
   vmImage: ubuntu-latest
@@ -391,7 +440,7 @@ steps:
     repoId=$(Build.Repository.ID)
     branch='${{ parameters.branchName }}'
 
-    echo '${{ convertToJson(parameters.microservices) }}' | jq -c '.[]' | while read svc; do
+    echo '${{ convertToJson(parameters.services) }}' | jq -c '.[]' | while read svc; do
       name=$(echo $svc     | jq -r '.name')
       ciName=$(echo $svc   | jq -r '.ciName')
       path=$(echo $svc     | jq -r '.pathFilters | join(";")')
@@ -456,6 +505,9 @@ steps:
         disp=$(echo  $sts   | jq -r '.displayName')
         sblock=$(echo $sts  | jq -r '.blocking')
 
+        # Build the path filters JSON array for the config
+        pathFiltersJson=$(echo $svc | jq -c '.pathFilters')
+        
         cfg=$(mktemp)
         cat > $cfg <<EOF
     {
@@ -470,7 +522,10 @@ steps:
         "scope": [{
           "repositoryId": "$repoId",
           "refName": "refs/heads/$branch",
-          "matchKind": "Exact"
+          "matchKind": "Exact",
+          "matchOptions": {
+            "filenamePatterns": $pathFiltersJson
+          }
         }]
       }
     }
@@ -488,4 +543,158 @@ steps:
   env:
     AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
   displayName: 'Per-service policies'
+
+# ------------------------------------------------------------------
+# 5) Automatically included reviewers
+# ------------------------------------------------------------------
+- bash: |
+    set -euo pipefail
+    
+    repoId="$(Build.Repository.ID)"
+    branch='${{ parameters.branchName }}'
+    project="$(System.TeamProject)"
+    org="$(System.TeamFoundationCollectionUri)"
+    
+    echo "Setting up automatic reviewers for branch $branch"
+    echo "Repository ID: $repoId"
+    
+    # Set default project for Azure DevOps CLI
+    az devops configure --defaults organization="$org" project="$project"
+    
+    # Get required reviewer policy type ID - we know from the example it's "Required reviewers"
+    required_reviewer_type_id=$(az devops invoke --area policy --resource types \
+      --organization "$org" \
+      --route-parameters project="$project" \
+      --http-method GET --api-version 7.1 -o json |
+      jq -r '.value[] | select(.displayName=="Required reviewers") | .id')
+      
+    if [ -z "$required_reviewer_type_id" ]; then
+      echo "❌ Required reviewer policy type not found"; exit 1
+    fi
+    echo "Found Required reviewers policy type ID: $required_reviewer_type_id"
+    
+    # Function to get group ID by name
+    function get_group_id() {
+      local group_name="$1"
+      local group_id=""
+      
+      echo "Looking up ID for group: $group_name"
+      
+      # Try exact match on displayName first (most reliable)
+      group_id=$(az devops security group list --project "$project" --organization "$org" \
+        --output json | jq -r --arg name "$group_name" '.[] | select(.displayName==$name) | .originId' | head -1)
+        
+      if [ -z "$group_id" ]; then
+        # Try without project prefix if it exists
+        local simple_name=$(echo "$group_name" | sed -E 's/^\[[^\]]+\]\\//')
+        group_id=$(az devops security group list --project "$project" --organization "$org" \
+          --output json | jq -r --arg name "$simple_name" '.[] | select(.displayName==$name) | .originId' | head -1)
+        
+        if [ -z "$group_id" ]; then
+          # Try partial match on displayName
+          group_id=$(az devops security group list --project "$project" --organization "$org" \
+            --output json | jq -r --arg name "$simple_name" '.[] | select(.displayName | contains($name)) | .originId' | head -1)
+            
+          if [ -z "$group_id" ]; then
+            # Try project-level groups (principalName format is different)
+            group_id=$(az devops security group list --project "$project" --organization "$org" \
+              --output json | jq -r --arg name "$simple_name" '.[] | select(.principalName | contains($name)) | .originId' | head -1)
+              
+            if [ -z "$group_id" ]; then
+              echo "⚠️ Could not find ID for group: $group_name"
+            else
+              echo "Found ID for $group_name by principalName: $group_id"
+            fi
+          else
+            echo "Found ID for $group_name by partial displayName: $group_id"
+          fi
+        else
+          echo "Found ID for $group_name with simple name: $group_id"
+        fi
+      else
+        echo "Found ID for $group_name by exact displayName: $group_id"
+      fi
+      
+      echo "$group_id"
+    }
+    
+    # Process each reviewer configuration from parameters
+    echo '${{ convertToJson(parameters.autoIncludedReviewers) }}' | jq -c '.[]' | while read reviewer; do
+      # The displayName field is used just for logging and identification in the script
+      # It doesn't affect the actual policy creation
+      displayName=$(echo $reviewer | jq -r '.displayName')
+      groupName=$(echo $reviewer | jq -r '.groupName')
+      isRequiredReview=$(echo $reviewer | jq -r '.isRequiredReview')
+      canReviewOwnChanges=$(echo $reviewer | jq -r '.canReviewOwnChanges')
+      messageText=$(echo $reviewer | jq -r '.messageText' | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
+      pathFilters=$(echo $reviewer | jq -c '.pathFilters')
+      
+      echo "Setting up reviewer policy for group: $groupName (display: $displayName)"
+      
+      # Get the group ID directly from the group name in the parameters
+      group_id=$(get_group_id "$groupName")
+      
+      if [ -z "$group_id" ]; then
+        echo "⚠️ Could not find ID for group: $groupName - skipping"
+        continue
+      fi
+      
+      echo "Using group ID: $group_id for $groupName"
+      
+      # Create policy configuration file using the exact JSON structure as exported from Azure DevOps UI
+      config_file=$(mktemp)
+      
+      # Generate JSON config with variable interpolation
+      cat > "$config_file" << JSON
+    {
+      "isEnabled": true,
+      "isBlocking": $isRequiredReview,
+      "type": {
+        "id": "$required_reviewer_type_id"
+      },
+      "settings": {
+        "creatorVoteCounts": $canReviewOwnChanges,
+        "filenamePatterns": $pathFilters,
+        "message": "$messageText",
+        "minimumApproverCount": 1,
+        "requiredReviewerIds": [
+          "$group_id"
+        ],
+        "scope": [
+          {
+            "matchKind": "Exact",
+            "refName": "refs/heads/$branch",
+            "repositoryId": "$repoId"
+          }
+        ]
+      }
+    }
+    JSON
+      
+      # Debug: show the final configuration
+      echo "Policy configuration:"
+      cat "$config_file"
+      
+      # Check if policy already exists for this reviewer group
+      existing_policy_id=$(az repos policy list --branch $branch --repository-id $repoId \
+        --organization "$org" --project "$project" \
+        --query "[?type.displayName=='Required reviewers' && settings.requiredReviewerIds[0]=='$group_id'].id" \
+        -o tsv)
+      
+      if [ -n "$existing_policy_id" ]; then
+        echo "Updating existing policy for $displayName (ID: $existing_policy_id)"
+        az repos policy update --id "$existing_policy_id" --config "$config_file" \
+          --organization "$org" --project "$project"
+      else
+        echo "Creating new policy for $displayName"
+        az repos policy create --config "$config_file" \
+          --organization "$org" --project "$project"
+      fi
+      
+      # Clean up temp file
+      rm "$config_file"
+    done
+  env:
+    AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+  displayName: 'Configure auto-included reviewers'
 

@@ -45,7 +45,34 @@ steps:
     destination: '${{ parameters.artifactStagingDirectory }}/${{ parameters.artifactName }}'
     chartVersion: '${{ parameters.chartVersion }}'
     save: false
+
+- script: |
+    echo "Copying values file to artifact staging directory"
+    mkdir -p '${{ parameters.artifactStagingDirectory }}/${{ parameters.artifactName }}/prod'
+    mkdir -p '${{ parameters.artifactStagingDirectory }}/${{ parameters.artifactName }}/staging'
+    mkdir -p '${{ parameters.artifactStagingDirectory }}/${{ parameters.artifactName }}/pr'
     
+    # Check if source files exist before copying
+    if [ -f 'pipelines/config/prod/$(folderNameComponent)/values.yml' ]; then
+      cp 'pipelines/config/prod/$(folderNameComponent)/values.yml' '${{ parameters.artifactStagingDirectory }}/${{ parameters.artifactName }}/prod/values.yml'
+    else
+      echo "Warning: Source file pipelines/config/prod/$(folderNameComponent)/values.yml not found"
+    fi
+    
+    if [ -f 'pipelines/config/staging/$(folderNameComponent)/values.yml' ]; then
+      cp 'pipelines/config/staging/$(folderNameComponent)/values.yml' '${{ parameters.artifactStagingDirectory }}/${{ parameters.artifactName }}/staging/values.yml'
+    else
+      echo "Warning: Source file pipelines/config/staging/$(folderNameComponent)/values.yml not found"
+    fi
+    
+    if [ -f 'pipelines/config/pr/$(folderNameComponent)/values.yml' ]; then
+      cp 'pipelines/config/pr/$(folderNameComponent)/values.yml' '${{ parameters.artifactStagingDirectory }}/${{ parameters.artifactName }}/pr/values.yml'
+    else
+      echo "Warning: Source file pipelines/config/pr/$(folderNameComponent)/values.yml not found"
+    fi
+
+  displayName: 'Copy values file to artifact staging directory'
+ 
 - publish: '${{ parameters.artifactStagingDirectory }}/${{ parameters.artifactName }}'
   artifact: '${{ parameters.artifactName }}'
   displayName: 'Publish Artifact: ${{ parameters.artifactName }}'

@@ -7,6 +7,17 @@ parameters:
     type: string
 
 steps:
+# - task: PullRequestComments@0
+#   displayName: 'Post a pull request comment'
+#   inputs:
+#     content: ${{ parameters.commentContent }}
+#     status: 'Active'
+#     type: 'system'
+#     skipIfCommentExists: ${{ parameters.skipIfExists }}
+#     pullRequestId: $(System.PullRequest.PullRequestId)
+#     useDefined: true
+#     commentId: ${{ parameters.commentMarker }}
+#   condition: and(succeeded(), ne('$(System.PullRequest.PullRequestId)', ''))
 - task: Bash@3
   displayName: 'Post PR comment (skipIfExists=${{ parameters.skipIfExists }})'
   env:

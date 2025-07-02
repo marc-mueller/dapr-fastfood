@@ -64,6 +64,9 @@ parameters:
     - name: 'pr-cleanup'
       yaml: 'pipelines/pr-cleanup.yml'
       folder: 'Fastfood'
+    - name: 'pr-workitemcheck'
+      yaml: 'pipelines/pr-workitemcheck.yml'
+      folder: 'Fastfood'
 
 - name: repoName
   displayName: 'Name of git repo (where to create pipelines)'

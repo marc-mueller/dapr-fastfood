@@ -217,7 +217,7 @@ This template encapsulates the logic for deploying a Helm chart to Kubernetes, i
     clusterNamespace: '$(namespace)'
     chartPath: '$(helmChartArtifactDownloadPath)'
     releaseName: '$(pipelineArtifactName)'
-    releaseValuesFile: '$(helmValuesOverwritesFile)'
+    releasevaluesFile: '$(helmChartArtifactValuesFileDownloadPath)'
     tokenizerSecrets: []
     installHelm: true
     installKubectl: true
@@ -247,12 +247,12 @@ jobs:
     parameters:
       environment: 'fastfood-staging'
       namespace: 'staging'
-      valuesFile: '$(helmValuesOverwritesFile)'
+      valuesFile: '$(helmChartArtifactValuesFileDownloadPath)'
       artifactName: '$(pipelineArtifactName)'
       chartPackage: '$(helmChartArtifactDownloadPath)'
       kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
       updateBuildNumber: true
-      sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+      
       tokenizerSecrets: []
       displayName: 'Deploy Service to Kubernetes'
       pool:
@@ -298,12 +298,12 @@ stages:
         parameters:
           environment: 'fastfood-staging'
           namespace: 'staging'
-          valuesFile: '$(helmValuesOverwritesFile)'
+          valuesFile: '$(helmChartArtifactValuesFileDownloadPath)'
           artifactName: '$(pipelineArtifactName)'
           chartPackage: '$(helmChartArtifactDownloadPath)'
           kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
           updateBuildNumber: true
-          sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+          
           tokenizerSecrets: []
           displayName: 'Deploy Service to Kubernetes'
           pool:

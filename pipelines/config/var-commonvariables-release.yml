@@ -9,7 +9,5 @@ variables:
   value: $(RESOURCES.PIPELINE.CIBUILD.RUNNAME)
 - name: helmChartArtifactDownloadPath
   value: '$(Pipeline.Workspace)/CIBuild/$(pipelineArtifactName)/$(serviceName)-$(artifactVersion).tgz'
-- name: releaseSparseCheckoutDirectories
-  value: 'pipelines/config/$(stagename)/$(folderNameComponent)'
-- name: nodeVersion
-  value: '22'
+- name: helmChartArtifactValuesFileDownloadPath
+  value: '$(Pipeline.Workspace)/CIBuild/$(pipelineArtifactName)/$(stagename)/values.yml'

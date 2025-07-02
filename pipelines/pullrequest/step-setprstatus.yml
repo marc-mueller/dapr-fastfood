@@ -12,11 +12,20 @@ parameters:
   - name: genre           # optional context.genre
     type: string
     default: ''
-  - name: iterationId     # optional PR iteration
+  - name: iteration     
     type: string
-    default: ''
+    default: '$(System.PullRequest.PullRequestIteration)'
 
 steps:
+# - task: PullRequestStatus@0
+#   displayName: 'Update PR deployment status'
+#   inputs:
+#     name: '${{ parameters.contextName }}'
+#     action: 'Update'
+#     state: 'succeeded'
+#     description: '${{ parameters.description }}'
+#     useDefined: true
+#     pullRequestId: $(System.PullRequest.PullRequestId)
 - task: Bash@3
   displayName: "Set PR status: ${{ parameters.contextName }} → ${{ parameters.state }}"
   env:
@@ -47,9 +56,9 @@ steps:
           state: $state,
           description: $descr,
           targetUrl: ($url | select(. != "")),
-          context: context
+          context: context,
+          iterationId: (if $iteration != "" and $iteration != null then ($iteration|tonumber) else 1 end)
         }
-        + (if $iteration != "" then {iterationId: ($iteration|tonumber)} else {} end)
       '
 
       payload=$(jq -n \
@@ -58,7 +67,7 @@ steps:
         --arg name      "${{ parameters.contextName }}" \
         --arg url       "$targetUrl" \
         --arg genre     "${{ parameters.genre }}" \
-        --arg iteration "${{ parameters.iterationId }}" \
+        --arg iteration "${{ parameters.iteration }}" \
         "$jqFilter")
 
       # ---------- POST (create or update) ----------

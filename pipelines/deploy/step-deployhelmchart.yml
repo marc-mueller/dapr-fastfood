@@ -27,107 +27,54 @@ parameters:
   - name: createNamespace
     type: boolean
     default: false
-  - name: deployOnlyIfNotExist
-    type: boolean
-    default: false
+  - name: condition
+    type: string
+    default: 'succeeded()'
 
 steps:
   - ${{ if eq(parameters.installKubectl, true) }}:
     - task: KubectlInstaller@0
       displayName: 'Install Kubectl ${{ parameters.kubectlVersion }}'
+      condition: ${{ parameters.condition }}
       inputs:
         kubectlVersion: '${{ parameters.kubectlVersion }}'
+
   - ${{ if eq(parameters.installHelm, true) }}:
     - task: HelmInstaller@1
       displayName: 'Install Helm ${{ parameters.helmVersion }}'
+      condition: ${{ parameters.condition }}
       inputs:
         helmVersionToInstall: '${{ parameters.helmVersion }}'
-  # Split into two cases: always deploy vs. deploy only if not exists
-  - ${{ if eq(parameters.deployOnlyIfNotExist, true) }}:
-    # First set up Helm with proper authentication
-    - task: HelmDeploy@0
-      displayName: 'Setup Helm Authentication'
-      inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceConnection: ${{ parameters.kubernetesDeploymentServiceConnection }}
-        command: 'login'
-      condition: succeeded()
-    
-    # When deployOnlyIfNotExist is true, check if release exists first
-    - bash: |
-        echo "Checking if Helm release ${{ parameters.releaseName }} exists in namespace ${{ parameters.clusterNamespace }}..."
-        # Use helm list to check if the release exists
-        helm list -n ${{ parameters.clusterNamespace }} | grep "${{ parameters.releaseName }}" > /dev/null
-        if [ $? -eq 0 ]; then
-          echo "##vso[task.setvariable variable=releaseExists]true"
-          echo "Release ${{ parameters.releaseName }} already exists in namespace ${{ parameters.clusterNamespace }}"
-        else
-          echo "##vso[task.setvariable variable=releaseExists]false"
-          echo "Release ${{ parameters.releaseName }} does not exist in namespace ${{ parameters.clusterNamespace }}"
-        fi
-      displayName: 'Check if Helm release exists'
-      condition: succeeded()
-
-    # Conditional namespace creation (only when deployOnlyIfNotExist=true AND release doesn't exist)
-    - ${{ if eq(parameters.createNamespace, true) }}:
-      - task: Kubernetes@1
-        displayName: 'Create Namespace'
-        condition: eq(variables['releaseExists'], 'false')
-        inputs:
-          connectionType: 'Kubernetes Service Connection'
-          kubernetesServiceEndpoint: ${{ parameters.kubernetesDeploymentServiceConnection }}
-          command: create
-          arguments: 'namespace ${{ parameters.clusterNamespace }}'
-    
-    # Tokenizer template
-    - template: ../general/step-tokenizer.yml
-      parameters:
-        filePattern: '${{ parameters.releaseValuesFile }}'
-        secrets: ${{ parameters.tokenizerSecrets }}
-    
-    # Helm deploy (only when deployOnlyIfNotExist=true AND release doesn't exist)
-    - task: HelmDeploy@0
-      displayName: 'Helm upgrade release'
-      condition: eq(variables['releaseExists'], 'false')
-      inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceConnection: ${{ parameters.kubernetesDeploymentServiceConnection }}
-        useClusterAdmin: true
-        namespace: ${{ parameters.clusterNamespace }}
-        command: 'upgrade'
-        chartType: 'FilePath'
-        chartPath: ${{ parameters.chartPath }}
-        releaseName: ${{ parameters.releaseName }}
-        valueFile: ${{ parameters.releaseValuesFile }}
   
-  # When deployOnlyIfNotExist is false, always deploy
-  - ${{ if ne(parameters.deployOnlyIfNotExist, true) }}:
-    # Conditional namespace creation (only when createNamespace=true)
-    - ${{ if eq(parameters.createNamespace, true) }}:
-      - task: Kubernetes@1
-        displayName: 'Create Namespace'
-        inputs:
-          connectionType: 'Kubernetes Service Connection'
-          kubernetesServiceEndpoint: ${{ parameters.kubernetesDeploymentServiceConnection }}
-          command: create
-          arguments: 'namespace ${{ parameters.clusterNamespace }}'
-    
-    # Tokenizer template
-    - template: ../general/step-tokenizer.yml
-      parameters:
-        filePattern: '${{ parameters.releaseValuesFile }}'
-        secrets: ${{ parameters.tokenizerSecrets }}
-    
-    # Helm deploy
-    - task: HelmDeploy@0
-      displayName: 'Helm upgrade release'
+  - ${{ if eq(parameters.createNamespace, true) }}:
+    - task: Kubernetes@1
+      displayName: 'Create Namespace'
+      condition: ${{ parameters.condition }}
       inputs:
         connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceConnection: ${{ parameters.kubernetesDeploymentServiceConnection }}
-        useClusterAdmin: true
-        namespace: ${{ parameters.clusterNamespace }}
-        command: 'upgrade'
-        chartType: 'FilePath'
-        chartPath: ${{ parameters.chartPath }}
-        releaseName: ${{ parameters.releaseName }}
-        valueFile: ${{ parameters.releaseValuesFile }}
+        kubernetesServiceEndpoint: ${{ parameters.kubernetesDeploymentServiceConnection }}
+        command: create
+        arguments: 'namespace ${{ parameters.clusterNamespace }}'
+
+  - template: ../general/step-tokenizer.yml
+    parameters:
+      filePattern: '${{ parameters.releaseValuesFile }}'
+      secrets: ${{ parameters.tokenizerSecrets }}
+      condition: ${{ parameters.condition }}
+  
+  # Helm deploy - with proper condition based on params
+  - task: HelmDeploy@0
+    displayName: 'Helm upgrade ${{ parameters.releaseName }}'
+    # If deployOnlyIfNotExist is true, only deploy when release doesn't exist
+    # Otherwise, use the generic condition parameter
+    condition: ${{ parameters.condition }}
+    inputs:
+      connectionType: 'Kubernetes Service Connection'
+      kubernetesServiceConnection: ${{ parameters.kubernetesDeploymentServiceConnection }}
+      namespace: ${{ parameters.clusterNamespace }}
+      command: 'upgrade'
+      chartType: 'FilePath'
+      chartPath: ${{ parameters.chartPath }}
+      releaseName: ${{ parameters.releaseName }}
+      valueFile: ${{ parameters.releaseValuesFile }}
+      install: true

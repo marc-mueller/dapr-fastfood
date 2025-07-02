@@ -14,8 +14,6 @@ parameters:
   - name: updateBuildNumber
     type: boolean
     default: false
-  - name: sparseCheckoutDirectories
-    type: string
   - name: tokenizerSecrets
     type: object
     default: []
@@ -44,12 +42,11 @@ jobs:
       runOnce:
         deploy:
           steps:
+            - checkout: none
             - ${{ if eq(parameters.updateBuildNumber, true) }}:
                 - script: |
                     echo "##vso[build.updatebuildnumber]$(releaseBuildNumber)"
                   displayName: 'Update Release Build Number'
-            - checkout: self
-              sparseCheckoutDirectories: ${{ parameters.sparseCheckoutDirectories }}
             - download: CIBuild
             - template: step-deployhelmchart.yml
               parameters:

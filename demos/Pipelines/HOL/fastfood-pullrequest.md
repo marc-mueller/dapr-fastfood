@@ -62,12 +62,12 @@ In the PullRequest stage, a unique namespace is created for each PR (e.g., `pr-1
       parameters:
         environment: 'fastfood-$(stagename)'
         namespace: '$(namespace)'
-        valuesFile: '$(helmValuesOverwritesFile)'
+        valuesFile: '$(helmChartArtifactValuesFileDownloadPath)'
         artifactName: '$(pipelineArtifactName)'
         chartPackage: '$(helmChartArtifactDownloadPath)'
         kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
         updateBuildNumber: true
-        sparseCheckoutDirectories: '$(releaseSparseCheckoutDirectories)'
+        
         pool:
           vmImage: 'ubuntu-latest'
     - template: deploy/job-verifyprdeployment.yml
