@@ -33,6 +33,6 @@ jobs:
         displayName: 'System Tests'
       - template: ../pullrequest/step-setprstatus.yml
         parameters:
-          state: 'success'
-          description: '${{ parameters.serviceName }} System Tests Completed Successfully'
+          state: 'succeeded'
+          description: '${{ parameters.serviceName }} PR Deployment'
           contextName: 'pr-deployment-${{ parameters.serviceName }}'

@@ -45,14 +45,13 @@ jobs:
           pr_id="${{ parameters.fastfoodPrUpdated.resource.pullRequestId }}"
           repo_id="${{ parameters.fastfoodPrUpdated.resource.repository.id }}"
           org_url="${SYSTEM_COLLECTIONURI}"
-          project="${SYSTEM_TEAMPROJECT}"
 
           # Get work item IDs associated with the PR
-          work_item_ids=$(az repos pr work-item list --id "$pr_id" --org "$org_url" --project "$project" --output tsv --query "[].id")
+          work_item_ids=$(az repos pr work-item list --id "$pr_id" --org "$org_url" --output tsv --query "[].id")
 
           all_have_description=true
           for id in $work_item_ids; do
-            desc=$(az boards work-item show --id $id --org "$org_url" --project "$project" --query "fields['System.Description']" -o tsv)
+            desc=$(az boards work-item show --id $id --org "$org_url" --query "fields['System.Description']" -o tsv)
             if [ -z "$desc" ]; then
               all_have_description=false
               break
