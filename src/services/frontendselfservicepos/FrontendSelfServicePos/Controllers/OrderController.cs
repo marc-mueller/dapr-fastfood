@@ -53,7 +53,7 @@ public partial class OrderController : ControllerBase
         }
         catch
         {
-            activity?.SetStatus(ActivityStatusCode.Error, "Failed to initiateorder creation."); 
+            activity?.SetStatus(ActivityStatusCode.Error, "Failed to initiate order creation."); 
             LogFailedToCreateOrder(orderDto?.Id ?? Guid.Empty);
             return StatusCode(500, "Failed to initiate order creation.");
         }
