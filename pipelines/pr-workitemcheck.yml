@@ -73,5 +73,6 @@ jobs:
       parameters:
         pullRequestId: ${{ parameters.fastfoodPrUpdated.resource.pullRequestId }}
         contextName: 'fastfood-wi-content-check'
+        genre: 'wi'
         state: $(prState)
         description: $(prDescription)

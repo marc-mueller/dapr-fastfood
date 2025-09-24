@@ -50,4 +50,7 @@ app.MapHub<OrderUpdateHub>("/orderupdatehub");
 
 app.MapHealthChecks("/healthz");
 
+// Fallback to index.html for SPA routes
+app.MapFallbackToFile("index.html");
+
 app.Run();

@@ -1,66 +1,58 @@
 ﻿<script setup>
-import { onMounted, computed } from 'vue';
-import { useStore } from 'vuex';
+import { computed, onMounted } from 'vue'
+import { useKitchenStore } from '@/stores/kitchenStore'
 
-const store = useStore();
+const ks = useKitchenStore()
 
-const finishItem = async (itemId) => {
-  try {
-    await store.dispatch('finishOrderItem', itemId);
-  } catch (err) {
-    console.error('Failed to finish item:', err);
+onMounted(async () => {
+  await ks.fetchPendingOrders()
+  await ks.initializeSignalRHub()
+})
+
+// Presentational projection with items sorted: unfinished first, finished at the bottom
+const pendingOrders = computed(() => ks.pendingOrders.map(x => {
+  const items = (x.items?.map(y => ({ id: y.id, name: y.productDescription, state: y.state })) ?? [])
+    .slice()
+    .sort((a, b) => {
+      const aFinished = a.state === 'Finished'
+      const bFinished = b.state === 'Finished'
+      if (aFinished === bFinished) return 0
+      return aFinished ? 1 : -1 // push finished to the bottom
+    })
+  return {
+    id: x.id,
+    name: x.orderReference,
+    orderItems: items
   }
-};
+}))
 
-const pendingOrders = computed(() => store.getters.pendingOrders.map(x => ({
-  ...x,
-  items: [...x.items.toSorted((a,b) => {
-    if (a.state === 'Finished') {
-      return 1;
-    }
-
-    if (b.state === 'Finished') {
-      return -1;
-    }
-
-    return -1;
-  })]
-})));
-
-onMounted(() => {
-  store.dispatch('fetchPendingOrders');
-  store.dispatch('initializeSignalRHub');
-});
+async function finishOrderItem(itemId) {
+  await ks.finishOrderItem(itemId)
+  await ks.fetchPendingOrders()
+}
 </script>
 
 <template>
-  <div>
-    <h1 class="text-2xl font-bold mb-4">Kitchen Monitor</h1>
-
-    <div v-for="order in pendingOrders" :key="order.id" class="bg-white shadow-md rounded-lg p-4 mb-4">
-      <h2 class="text-xl font-semibold mb-2">Order {{ order.orderReference }} ({{ order.id }})</h2>
-      <ul>
-        <li v-for="item in order.items" :key="item.id" class="p-2 border-b last:border-none">
-          <div class="flex justify-between items-center">
-            <div>
-              <span class="font-bold">{{ item.productDescription }}</span>
-              <div class="text-sm text-gray-500">Quantity: {{ item.quantity }}</div>
-              <div class="text-sm text-gray-500" v-if="item.customerComments">
-                Customer Comments: {{ item.customerComments }}
-              </div>
-              <div class="text-sm text-gray-500">Status: {{ item.state }}</div>
+  <div class="container mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4">Kitchen Work Monitor</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div v-for="order in pendingOrders" :key="order.id" class="p-4 bg-white rounded shadow">
+        <h2 class="text-xl font-semibold mb-2">{{ order.name }} ({{ order.id }})</h2>
+        <ul class="space-y-2">
+          <li v-for="item in order.orderItems" :key="item.id" class="flex items-center justify-between">
+            <span>{{ item.name }}</span>
+            <div class="space-x-2">
+              <span v-if="item.state === 'Finished'" class="text-green-600 font-semibold">Finished</span>
+              <button v-else class="px-3 py-1 bg-blue-500 text-white rounded" @click="finishOrderItem(item.id)">Finish</button>
             </div>
-            <button @click="finishItem(item.id)" :disabled="item.state !== 'AwaitingPreparation'"
-                    class="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-300">
-              Finish
-            </button>
-          </div>
-        </li>
-      </ul>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
+  
 </template>
 
 <style scoped>
-/* No scoped styles needed as Tailwind CSS will handle the styling */
+/* Tailwind handles styling */
 </style>

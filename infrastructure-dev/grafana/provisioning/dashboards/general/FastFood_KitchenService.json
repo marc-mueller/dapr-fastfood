@@ -1,0 +1,31 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "title": "FastFood - Kitchen Service Deep Dive",
+  "tags": ["kitchenservice", "otel", "demo"],
+  "panels": [
+    { "type": "row", "title": "Kitchen KPIs", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+  { "type": "stat", "title": "Orders / min", "targets": [ { "expr": "sum(rate(kitchenservice_orders_created_total[5m])) * 60", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 } },
+    { "type": "timeseries", "title": "Items per Order (p50, p95)", "targets": [
+      { "expr": "histogram_quantile(0.50, sum by (le) (rate(kitchenservice_orders_item_count_items_bucket[5m])))", "refId": "A", "legendFormat": "p50", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } },
+      { "expr": "histogram_quantile(0.95, sum by (le) (rate(kitchenservice_orders_item_count_items_bucket[5m])))", "refId": "B", "legendFormat": "p95", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } }
+    ], "gridPos": { "h": 8, "w": 12, "x": 6, "y": 1 } },
+
+    { "type": "row", "title": "Preparation Durations", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 } },
+  { "type": "timeseries", "title": "Order Preparation p95 (s)", "fieldConfig": { "defaults": { "unit": "s" } }, "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(kitchenservice_orders_preparation_duration_milliseconds_seconds_bucket[5m])))", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 } },
+  { "type": "timeseries", "title": "Item Preparation p95 (s)", "fieldConfig": { "defaults": { "unit": "s" } }, "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(kitchenservice_orders_item_preparation_duration_milliseconds_seconds_bucket[5m])))", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 } },
+
+    { "type": "row", "title": "HTTP Performance", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 } },
+  { "type": "timeseries", "title": "p95 by Route (top5)", "targets": [ { "expr": "topk(5, histogram_quantile(0.95, sum by (http_route, le) (rate(http_server_request_duration_seconds_bucket{service=\"kitchenservice\"}[5m]))))", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 } },
+  { "type": "gauge", "title": "Error rate % (5xx)", "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } }, "targets": [ { "expr": "(sum(rate(http_server_request_duration_seconds_count{service=\"kitchenservice\", http_response_status_code=~\"5..\"}[5m])) / sum(rate(http_server_request_duration_seconds_count{service=\"kitchenservice\"}[5m]))) * 100", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 8, "w": 6, "x": 12, "y": 19 } },
+  { "type": "stat", "title": "RPS", "targets": [ { "expr": "sum(rate(http_server_request_duration_seconds_count{service=\"kitchenservice\"}[5m]))", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 8, "w": 6, "x": 18, "y": 19 } },
+
+  { "type": "row", "title": "Logs", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 } },
+  { "type": "logs", "title": "KitchenService Errors (Loki)", "targets": [ { "expr": "{service_name=\\\"KitchenService\\\"} | detected_level=~\\\"(Error|Critical|Fatal)\\\"", "refId": "A", "datasource": { "type": "loki", "uid": "loki-logs" } } ], "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 } }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "time": { "from": "now-1h", "to": "now" },
+  "version": 1
+}

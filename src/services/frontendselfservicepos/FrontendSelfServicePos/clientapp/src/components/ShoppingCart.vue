@@ -16,25 +16,24 @@
 </template>
 
 <script>
-import { mapState, mapActions, mapGetters } from 'vuex';
+import { computed } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useOrderStore } from '@/stores/orderStore';
 
 export default {
-  computed: {
-    ...mapState({
-      order: state => state.currentOrder  // Accessing the currentOrder from the Vuex store
-    }),
-    cart() {
-      return this.order?.items || [];
-    },
-    ...mapGetters(['totalOrderPrice'])
+  setup() {
+    const orderStore = useOrderStore();
+    const { totalOrderPrice } = storeToRefs(orderStore); // getter
+    const cart = computed(() => orderStore.currentOrder?.items || []);
+
+    return { orderStore, totalOrderPrice, cart };
   },
   methods: {
-    ...mapActions(['removeItemFromOrder', 'confirmOrder']),
     async removeFromCart(item) {
-      await this.removeItemFromOrder(item);
+      await this.orderStore.removeItemFromOrder(item);
     },
-    async handleConfirmOrder() {  // Renamed method to handleConfirmOrder
-      await this.confirmOrder();  // Call the Vuex action confirmOrder
+    async handleConfirmOrder() {
+      await this.orderStore.confirmOrder();
       this.$router.push('/order-confirmation');
     },
     formatCurrency(value) {

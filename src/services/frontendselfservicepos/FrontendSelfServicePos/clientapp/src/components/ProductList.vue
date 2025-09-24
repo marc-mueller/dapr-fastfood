@@ -30,21 +30,22 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
 import ShoppingCart from './ShoppingCart.vue';
-import { v4 as uuidv4 } from 'uuid';
+import { useOrderStore } from '@/stores/orderStore';
 
 export default {
-  components: {
-    ShoppingCart,
+  components: { ShoppingCart },
+  setup() {
+    const orderStore = useOrderStore();
+    return { orderStore };
   },
   data() {
     return {
-      defaultImage: '/path/to/default-image.png', // Path to a default image
+      defaultImage: '/path/to/default-image.png',
     };
   },
   computed: {
-    ...mapState(['products']),
+    products() { return this.orderStore.products; },
     groupedProducts() {
       return this.products.reduce((acc, product) => {
         (acc[product.category] = acc[product.category] || []).push(product);
@@ -57,51 +58,32 @@ export default {
       product.quantity = (product.quantity || 1) + 1;
     },
     decreaseQuantity(product) {
-      if (product.quantity > 1) {
-        product.quantity--;
-      }
+      if (product.quantity > 1) product.quantity--;
     },
-    ...mapActions(['addItemToOrder']),
     async addToCart(product) {
-      if (!product.quantity) {
-        product.quantity = 1;
-      }
-
+      if (!product.quantity) product.quantity = 1;
+      const genId = () => (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2);
       const orderItem = {
-        id: uuidv4(),
+        id: genId(),
         productId: product.id,
         quantity: product.quantity,
-        itemPrice: product.price ?? 0, // Ensure itemPrice is set and handle undefined case
-        productDescription: product.title, // Product title as description
+        itemPrice: product.price ?? 0,
+        productDescription: product.title,
       };
-
-      await this.addItemToOrder(orderItem);
+      await this.orderStore.addItemToOrder(orderItem);
     },
     formatCurrency(value) {
-      if (value === undefined || value === null) {
-        return '$0.00';
-      }
+      if (value === undefined || value === null) return '$0.00';
       return `$${value.toFixed(2)}`;
     },
   },
   created() {
-    this.$store.dispatch('fetchProducts');
+    this.orderStore.fetchProducts();
   },
 };
 </script>
 
 <style scoped>
-/* Added styles to manage image sizes and overflow */
-.product-image {
-  max-width: 100%;
-  max-height: 200px; /* Adjust according to design */
-  object-fit: cover; /* Maintain aspect ratio and cover the box */
-}
-.fixed-cart {
-  position: fixed;
-  top: 0;
-  right: 0;
-  height: 100vh;
-  overflow-y: auto; /* Allowing scroll if content overflows */
-}
+.product-image { max-width: 100%; max-height: 200px; object-fit: cover; }
+.fixed-cart { position: fixed; top: 0; right: 0; height: 100vh; overflow-y: auto; }
 </style>

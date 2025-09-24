@@ -1,16 +1,15 @@
 ﻿<script setup>
 import { computed, onMounted } from 'vue';
-import { useStore } from 'vuex';
+import { useOrderStatusStore } from '@/stores/orderStatusStore';
 
-const store = useStore();
+const os = useOrderStatusStore();
 
-// Fetch the initial order statuses on mount
-onMounted(() => {
-  store.dispatch('initializeSignalRHub');
+onMounted(async () => {
+  await os.initializeSignalRHub();
 });
 
-const ordersInPreparation = computed(() => store.getters.ordersInPreparation);
-const ordersFinished = computed(() => store.getters.ordersFinished);
+const ordersInPreparation = computed(() => os.ordersInPreparation);
+const ordersFinished = computed(() => os.ordersFinished);
 </script>
 
 <template>

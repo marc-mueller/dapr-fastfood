@@ -1,7 +1,7 @@
 ﻿<template>
   <div class="flex justify-center items-center w-full">
   <div class="w-[30rem]">
-    <h3 class="text-2xl font-bold mb-4">Order Confirmation ({{ order.orderReference }})</h3>
+    <h3 class="text-2xl font-bold mb-4">Order Confirmation ({{ order?.orderReference }})</h3>
     <div v-if="!order || order.items.length === 0">Your order is empty.</div>
     <div v-else>
       <div v-for="item in order.items" :key="item.id" class="flex gap-4 items-center mb-2">
@@ -23,45 +23,53 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { computed, watch, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
+import { useOrderStore } from '@/stores/orderStore';
 
 export default {
-  computed: {
-    order() {
-      return this.$store.state.currentOrder;
-    },
-    ...mapGetters(['totalOrderPrice']),
-    isPaid() {
-      console.log("Order state:", this.order?.state);
-      return (this.order?.state === "Paid" || this.order?.state === "Processing");
-    }
-  },
-  watch: {
-    order: {
-      deep: true,
-      handler(newVal) {
-        if (newVal && (newVal.state === "Paid" || newVal.state === "Processing") ) {
-          console.log("Order state is paid, navigating to start page in 3 seconds...");
-          setTimeout(() => {
-            this.navigateToStart();
-          }, 3000);
+  setup() {
+    const router = useRouter();
+    const orderStore = useOrderStore();
+    const order = computed(() => orderStore.currentOrder);
+    const totalOrderPrice = computed(() => orderStore.totalOrderPrice);
+    const isPaid = computed(() => order.value && (order.value.state === 'Paid' || order.value.state === 'Processing'));
+    let redirectTimer = null;
+
+    watch(order, (newVal) => {
+      if (newVal && (newVal.state === 'Paid' || newVal.state === 'Processing')) {
+        if (redirectTimer) {
+          clearTimeout(redirectTimer);
+          redirectTimer = null;
         }
+        redirectTimer = setTimeout(() => {
+          navigateToStart();
+        }, 3000);
       }
+    }, { deep: true });
+
+  function pay() { orderStore.confirmPayment(); }
+  function navigateToStart() {
+    if (redirectTimer) {
+      clearTimeout(redirectTimer);
+      redirectTimer = null;
     }
-  },
-  methods: {
-    pay() {
-      this.$store.dispatch('confirmPayment');
-    },
-    navigateToStart() {
-      this.$router.push('/');
-    },
-    formatCurrency(value) {
-      if (value === undefined || value === null) {
-        return '$0.00';
+    router.push('/');
+  }
+
+    onBeforeUnmount(() => {
+      if (redirectTimer) {
+        clearTimeout(redirectTimer);
+        redirectTimer = null;
       }
+    });
+
+    function formatCurrency(value) {
+      if (value === undefined || value === null) return '$0.00';
       return `$${value.toFixed(2)}`;
     }
+
+    return { order, totalOrderPrice, isPaid, pay, navigateToStart, formatCurrency };
   }
 }
 </script>

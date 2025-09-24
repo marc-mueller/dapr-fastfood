@@ -239,8 +239,10 @@ public partial class OrderProcessingServiceState : IOrderProcessingServiceState
                 throw new InvalidOperationException("Item not found");
             }
         }
-
-        throw new InvalidOperationException("Order is not in the correct state to finish an item");
+        else
+        {
+            throw new InvalidOperationException("Order is not in the correct state to finish an item");    
+        }
     }
 
     public async Task Served(Guid orderid)

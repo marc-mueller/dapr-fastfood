@@ -23,7 +23,7 @@ services:
 
   financeservice-dapr:
     container_name: financeservice-dapr
-    image: "daprio/daprd:1.15.5"
+    image: "daprio/daprd:1.16.0"
     command: [ "./daprd",
                "--app-id", "financeservice",
                "--app-port", "8080",
@@ -39,6 +39,8 @@ services:
       - "../infrastructure-dev/dapr/config/:/config"
     env_file:
       - ../infrastructure-dev/dapr/certs/mtls.env
+    environment:
+      - OTEL_PROPAGATORS=tracecontext,b3
     depends_on:
       financeservice:
         condition: service_started
@@ -73,7 +75,7 @@ services:
 
   kitchenservice-dapr:
     container_name: kitchenservice-dapr
-    image: "daprio/daprd:1.15.5"
+    image: "daprio/daprd:1.16.0"
     command: ["./daprd",
               "--app-id", "kitchenservice",
               "--app-port", "8080",
@@ -89,6 +91,8 @@ services:
       - "../infrastructure-dev/dapr/config/:/config"
     env_file:
       - ../infrastructure-dev/dapr/certs/mtls.env
+    environment:
+      - OTEL_PROPAGATORS=tracecontext,b3
     depends_on:
       kitchenservice:
         condition: service_started
@@ -123,7 +127,7 @@ services:
 
   orderservice-dapr:
     container_name: orderservice-dapr
-    image: "daprio/daprd:1.15.5"
+    image: "daprio/daprd:1.16.0"
     command: ["./daprd",
               "--app-id", "orderservice",
               "--app-port", "8080",
@@ -139,6 +143,8 @@ services:
       - "../infrastructure-dev/dapr/config/:/config"
     env_file:
       - ../infrastructure-dev/dapr/certs/mtls.env
+    environment:
+      - OTEL_PROPAGATORS=tracecontext,b3
     depends_on:
       orderservice:
         condition: service_started
@@ -173,7 +179,7 @@ services:
 
   orderserviceactors-dapr:
     container_name: orderserviceactors-dapr
-    image: "daprio/daprd:1.15.5"
+    image: "daprio/daprd:1.16.0"
     command: ["./daprd",
               "--app-id", "orderserviceactors",
               "--app-port", "8080",
@@ -189,6 +195,8 @@ services:
       - "../infrastructure-dev/dapr/config/:/config"
     env_file:
       - ../infrastructure-dev/dapr/certs/mtls.env
+    environment:
+      - OTEL_PROPAGATORS=tracecontext,b3
     depends_on:
       orderserviceactors:
         condition: service_started
@@ -228,7 +236,7 @@ services:
 
   frontendselfservicepos-dapr:
     container_name: frontendselfservicepos-dapr
-    image: "daprio/daprd:1.15.5"
+    image: "daprio/daprd:1.16.0"
     command: ["./daprd",
               "--app-id", "frontendselfservicepos",
               "--app-port", "8080",
@@ -244,6 +252,8 @@ services:
       - "../infrastructure-dev/dapr/config/:/config"
     env_file:
       - ../infrastructure-dev/dapr/certs/mtls.env
+    environment:
+      - OTEL_PROPAGATORS=tracecontext,b3
     depends_on:
       kitchenservice:
         condition: service_started
@@ -283,7 +293,7 @@ services:
   
   frontendkitchenmonitor-dapr:
     container_name: frontendkitchenmonitor-dapr
-    image: "daprio/daprd:1.15.5"
+    image: "daprio/daprd:1.16.0"
     command: [ "./daprd",
                "--app-id", "frontendkitchenmonitor",
                "--app-port", "8080",
@@ -299,6 +309,8 @@ services:
       - "../infrastructure-dev/dapr/config/:/config"
     env_file:
       - ../infrastructure-dev/dapr/certs/mtls.env
+    environment:
+      - OTEL_PROPAGATORS=tracecontext,b3
     depends_on:
       kitchenservice:
         condition: service_started
@@ -338,7 +350,7 @@ services:
   
   frontendcustomerorderstatus-dapr:
     container_name: frontendcustomerorderstatus-dapr
-    image: "daprio/daprd:1.15.5"
+    image: "daprio/daprd:1.16.0"
     command: [ "./daprd",
                "--app-id", "frontendcustomerorderstatus",
                "--app-port", "8080",
@@ -354,6 +366,8 @@ services:
       - "../infrastructure-dev/dapr/config/:/config"
     env_file:
       - ../infrastructure-dev/dapr/certs/mtls.env
+    environment:
+      - OTEL_PROPAGATORS=tracecontext,b3
     depends_on:
       kitchenservice:
         condition: service_started
@@ -369,7 +383,7 @@ services:
 
   redis:
     container_name: redis
-    image: "redis:7.2.4"
+    image: "redis:8.2.1"
     ports:
       - "6379:6379"
     networks:
@@ -377,7 +391,7 @@ services:
 
   placement:
     container_name: placement
-    image: "daprio/dapr:1.15.5"
+    image: "daprio/dapr:1.16.0"
     command: ["./placement",
               "--sentry-address", "sentry:50001",
               "--tls-enabled",
@@ -390,7 +404,7 @@ services:
       - fastfoodnet
       
   scheduler:
-    image: "daprio/dapr:1.15.5"
+    image: "daprio/dapr:1.16.0"
     command: [ "./scheduler", 
                "--port", "50007"]
     ports:
@@ -402,7 +416,7 @@ services:
       - fastfoodnet
         
   sentry:
-    image: "daprio/sentry:1.15.5"
+    image: "daprio/sentry:1.16.0"
     container_name: sentry
     command: ["./sentry",
               "--issuer-credentials", "/certs",
@@ -420,7 +434,7 @@ services:
 
   rabbitmq:
     container_name: rabbitmq
-    image: "rabbitmq:3-management"
+    image: "rabbitmq:4.1.4-management"
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -456,7 +470,7 @@ services:
 
   proxy:
     container_name: proxy
-    image: traefik:v3.1
+    image: traefik:v3.5.2
     command:
       - "--api.insecure=true" # Traefik dashboard (only for dev)
       - "--log.level=INFO"
@@ -492,7 +506,7 @@ services:
           - jaeger.localtest.me
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.128.0
+    image: otel/opentelemetry-collector-contrib:0.135.0
     container_name: otel-collector
     deploy:
       resources:
@@ -517,7 +531,7 @@ services:
       - fastfoodnet
 
   grafana:
-    image: grafana/grafana:11.3.0
+    image: grafana/grafana:12.1
     container_name: grafana
     deploy:
       resources:
@@ -537,7 +551,7 @@ services:
       - fastfoodnet
 
   jaeger:
-    image: jaegertracing/all-in-one:1.70.0
+    image: jaegertracing/all-in-one:1.73.0
     container_name: jaeger
     command:
       - "--memory.max-traces"
@@ -566,7 +580,7 @@ services:
       - fastfoodnet
 
   loki:
-    image: grafana/loki:3.4.4
+    image: grafana/loki:3.5.5
     container_name: loki
     ports:
       - "3100:3100"
@@ -577,7 +591,7 @@ services:
       - fastfoodnet
 
   prometheus:
-    image: quay.io/prometheus/prometheus:v3.4.0
+    image: quay.io/prometheus/prometheus:v3.5.0
     container_name: prometheus
     command:
       - --web.console.templates=/etc/prometheus/consoles

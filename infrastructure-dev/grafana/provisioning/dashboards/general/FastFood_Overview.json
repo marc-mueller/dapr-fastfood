@@ -1,0 +1,30 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "title": "FastFood - Observability Overview",
+  "tags": ["demo", "otel", "fastfood"],
+  "panels": [
+    { "type": "row", "title": "Business KPIs", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+    { "type": "stat", "title": "Orders Created / min", "targets": [ { "expr": "sum(rate(orderservice_orders_created_total[5m])) * 60", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 } },
+    { "type": "stat", "title": "Orders Paid / min", "targets": [ { "expr": "sum(rate(orderservice_orders_paid_total[5m])) * 60", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 } },
+    { "type": "stat", "title": "Kitchen Orders / min", "targets": [ { "expr": "sum(rate(kitchenservice_orders_created_total[5m])) * 60", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 } },
+    { "type": "gauge", "title": "Payment Conversion %", "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } }, "targets": [ { "expr": "(sum(rate(orderservice_orders_paid_total[5m])) / sum(rate(orderservice_orders_created_total[5m]))) * 100", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 6, "w": 6, "x": 18, "y": 1 } },
+
+    { "type": "row", "title": "Customer Journey Durations (seconds)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 } },
+    { "type": "timeseries", "title": "Sales (Create→Pay) p95", "fieldConfig": { "defaults": { "unit": "s" } }, "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(orderservice_orders_sales_duration_milliseconds_seconds_bucket[5m])))", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 } },
+    { "type": "timeseries", "title": "Kitchen Preparation p95", "fieldConfig": { "defaults": { "unit": "s" } }, "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(kitchenservice_orders_preparation_duration_milliseconds_seconds_bucket[5m])))", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 } },
+
+    { "type": "row", "title": "Platform Health (ASP.NET Core)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 } },
+    { "type": "timeseries", "title": "HTTP p95 latency (s)", "fieldConfig": { "defaults": { "unit": "s" } }, "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 7, "w": 8, "x": 0, "y": 17 } },
+    { "type": "stat", "title": "Requests per second", "targets": [ { "expr": "sum(rate(http_server_request_duration_seconds_count[5m]))", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 7, "w": 8, "x": 8, "y": 17 } },
+    { "type": "gauge", "title": "Error rate % (5xx)", "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } }, "targets": [ { "expr": "(sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[5m])) / sum(rate(http_server_request_duration_seconds_count[5m]))) * 100", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus-metrics" } } ], "gridPos": { "h": 7, "w": 8, "x": 16, "y": 17 } },
+
+  { "type": "row", "title": "Logs", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 } },
+  { "type": "logs", "title": "Recent Errors (Loki)", "targets": [ { "expr": "{service_name=~\".+\"} | detected_level=~\"(Error|Critical|Fatal)\"", "refId": "A", "datasource": { "type": "loki", "uid": "loki-logs" } } ], "options": { "showLabels": true, "wrapLogMessage": true }, "gridPos": { "h": 8, "w": 24, "x": 0, "y": 25 } }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "time": { "from": "now-15m", "to": "now" },
+  "version": 1
+}

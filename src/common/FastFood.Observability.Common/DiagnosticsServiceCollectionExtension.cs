@@ -15,6 +15,10 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using OpenTelemetry.Context.Propagation;
+using OpenTelemetry.Extensions.Propagators;
+using System.Diagnostics;
+using OpenTelemetry;
 
 namespace FastFood.Observability.Common
 {
@@ -33,6 +37,14 @@ namespace FastFood.Observability.Common
             services.AddSingleton(observability);
             services.AddSingleton<IObservability>(observability);
             services.AddSingleton<TInterfaceObservability>(observability);
+
+            // Set a composite propagator (W3C + B3 + Baggage) to maximize cross-process propagation (HTTP + gRPC)
+            Sdk.SetDefaultTextMapPropagator(new CompositeTextMapPropagator(new TextMapPropagator[]
+            {
+                new TraceContextPropagator(),
+                new OpenTelemetry.Extensions.Propagators.B3Propagator(),
+                new BaggagePropagator()
+            }));
 
             var resourceBuilder = ResourceBuilder
                 .CreateDefault()
@@ -257,7 +269,6 @@ namespace FastFood.Observability.Common
                 .AddSource(activitySourceName)
                 .SetResourceBuilder(resourceBuilder)
                 .SetSampler(sampler)
-                .AddHttpClientInstrumentation()
                 .AddAspNetCoreInstrumentation();
 
             if (observabilityOptions
@@ -297,6 +308,16 @@ namespace FastFood.Observability.Common
                     o.EnrichActivityWithTimingEvents = observabilityOptions.StackExchangeRedisInstrumentation.EnrichActivityWithTimingEvents;
                 });
                 builder.AddRedisInstrumentation();
+            }
+
+            if (observabilityOptions.EnableHttpClientInstrumentation)
+            {
+                builder.AddHttpClientInstrumentation();
+            }
+
+            if (observabilityOptions.EnableGrpcClientInstrumentation)
+            {
+                builder.AddGrpcClientInstrumentation();
             }
 
             // Use IConfiguration binding for AspNetCore instrumentation options.

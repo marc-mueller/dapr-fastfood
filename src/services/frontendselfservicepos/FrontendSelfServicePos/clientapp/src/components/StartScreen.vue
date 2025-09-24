@@ -7,12 +7,18 @@
 </template>
 
 <script>
+import { useOrderStore } from '@/stores/orderStore';
+import { useRouter } from 'vue-router';
+
 export default {
-  methods: {
-    startOrder() {
-      this.$store.dispatch('createOrder');
-      this.$router.push('/products');
+  setup() {
+    const orderStore = useOrderStore();
+    const router = useRouter();
+    async function startOrder() {
+      await orderStore.createOrder();
+      router.push('/products');
     }
+    return { startOrder };
   }
 }
 </script>

@@ -41,5 +41,6 @@ namespace FastFood.Observability.Common.Options
         public bool EnableAspNetCoreInstrumentation { get; set; }
         public AspNetCoreTraceInstrumentationOptions AspNetCoreInstrumentation { get; set; } = new AspNetCoreTraceInstrumentationOptions();
         public bool EnableHttpClientInstrumentation { get; set; }
+        public bool EnableGrpcClientInstrumentation { get; set; }
     }
 }

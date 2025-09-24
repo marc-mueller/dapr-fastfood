@@ -36,3 +36,4 @@ jobs:
           state: 'succeeded'
           description: '${{ parameters.serviceName }} PR Deployment'
           contextName: 'pr-deployment-${{ parameters.serviceName }}'
+          genre: 'pr-env'
