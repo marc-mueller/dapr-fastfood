@@ -11,7 +11,7 @@ onMounted(async () => {
 
 // Presentational projection with items sorted: unfinished first, finished at the bottom
 const pendingOrders = computed(() => ks.pendingOrders.map(x => {
-  const items = (x.items?.map(y => ({ id: y.id, name: y.productDescription, state: y.state })) ?? [])
+  const items = (x.items?.map(y => ({ id: y.id, name: y.productDescription, state: y.state, quantity: y.quantity })) ?? [])
     .slice()
     .sort((a, b) => {
       const aFinished = a.state === 'Finished'
@@ -40,7 +40,7 @@ async function finishOrderItem(itemId) {
         <h2 class="text-xl font-semibold mb-2">{{ order.name }} ({{ order.id }})</h2>
         <ul class="space-y-2">
           <li v-for="item in order.orderItems" :key="item.id" class="flex items-center justify-between">
-            <span>{{ item.name }}</span>
+            <span>{{ item.quantity }}x {{ item.name }}</span>
             <div class="space-x-2">
               <span v-if="item.state === 'Finished'" class="text-green-600 font-semibold">Finished</span>
               <button v-else class="px-3 py-1 bg-blue-500 text-white rounded" @click="finishOrderItem(item.id)">Finish</button>

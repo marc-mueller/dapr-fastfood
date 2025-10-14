@@ -104,7 +104,16 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             {
                 order.Items = new List<OrderItem>();
             }
-            order.Items?.Add(item);
+            
+            var existingItem = order.Items.FirstOrDefault(i => i.ProductId == item.ProductId);
+            if (existingItem != null)
+            {
+                existingItem.Quantity += item.Quantity;
+            }
+            else
+            {
+                order.Items.Add(item);
+            }
 
             await StateManager.SetStateAsync("order", order);
             await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
