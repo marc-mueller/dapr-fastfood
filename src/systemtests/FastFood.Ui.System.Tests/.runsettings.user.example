@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+  Local developer override for .runsettings
+  
+  To use this for local debugging with visible browser:
+  1. Copy this file to .runsettings.user (without .example)
+  2. The .runsettings.user file is gitignored and will override .runsettings
+  3. Set Headless to false to see the browser during test execution
+  
+  Visual Studio and dotnet test automatically use .runsettings.user if present.
+-->
+<RunSettings>
+  <Playwright>
+    <BrowserName>chromium</BrowserName>
+    <LaunchOptions>
+      <!-- Set to false to see the browser during test execution -->
+      <Headless>false</Headless>
+    </LaunchOptions>
+  </Playwright>
+  
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <!-- Uncomment to enable Playwright debug logs -->
+      <!-- <DEBUG>pw:api</DEBUG> -->
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>

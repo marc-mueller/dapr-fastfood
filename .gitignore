@@ -338,3 +338,5 @@ trivy_*.json
 .DS_Store
 
 **/certs/*.pem
+
+.playwright-mcp/

@@ -2,8 +2,8 @@
 # These arguments allow us to easily change the base images if needed.
 ARG IMAGE_NET_ASPNET=mcr.microsoft.com/dotnet/aspnet
 ARG IMAGE_NET_SDK=mcr.microsoft.com/dotnet/sdk
-ARG IMAGE_NET_ASPNET_VERSION=9.0.9
-ARG IMAGE_NET_SDK_VERSION=9.0.305
+ARG IMAGE_NET_ASPNET_VERSION=10.0.0
+ARG IMAGE_NET_SDK_VERSION=10.0.100
 
 # Allow a suffix to be appended to the final ASP.NET image for development customization.
 # This can be overridden at build time with --build-arg ASPNET_SUFFIX=
@@ -90,7 +90,7 @@ RUN find /app/publish -type d -exec chmod 755 {} \; && \
 # Stage 5: Build the client application
 # ---------------------------------------------------------------------
 
-FROM node:18 AS client-build
+FROM node:24 AS client-build
 WORKDIR /src
 # Use separate COPY commands to ensure no issues with file existence
 COPY services/frontendkitchenmonitor/FrontendKitchenMonitor/clientapp/package.json services/frontendkitchenmonitor/FrontendKitchenMonitor/clientapp/

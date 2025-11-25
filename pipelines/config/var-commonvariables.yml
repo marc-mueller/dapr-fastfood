@@ -14,9 +14,9 @@ variables:
 - name: helmVersion
   value: '3.12.0'
 - name: netCoreAspNetVersion
-  value: 9.0.3
+  value: 10.0.0
 - name: NetCoreSdkVersion
-  value: 9.0.300
+  value: 10.0.100
 - name: nodeVersion
   value: '22'
 

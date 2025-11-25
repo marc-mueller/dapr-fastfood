@@ -1,0 +1,63 @@
+parameters:
+  - name: displayName
+    type: string
+    default: 'Build System Tests'
+  - name: artifactName
+    type: string
+    default: 'systemtests'
+  - name: systemTestProject
+    type: string
+    default: 'src/systemtests/FastFood.Ui.System.Tests'
+  - name: buildConfiguration
+    type: string
+    default: 'Release'
+
+steps:
+  # Restore system test dependencies
+  - task: DotNetCoreCLI@2
+    displayName: 'Restore System Tests'
+    inputs:
+      command: 'restore'
+      projects: '${{ parameters.systemTestProject }}/*.csproj'
+      feedsToUse: 'select'
+
+  # Build system tests
+  - task: DotNetCoreCLI@2
+    displayName: 'Build System Tests'
+    inputs:
+      command: 'build'
+      projects: '${{ parameters.systemTestProject }}/*.csproj'
+      arguments: '--configuration ${{ parameters.buildConfiguration }} --no-restore'
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+  # Publish system tests to staging directory
+  - task: DotNetCoreCLI@2
+    displayName: 'Publish System Tests'
+    inputs:
+      command: 'publish'
+      publishWebProjects: false
+      projects: '${{ parameters.systemTestProject }}/*.csproj'
+      arguments: '--configuration ${{ parameters.buildConfiguration }} --output $(Build.ArtifactStagingDirectory)/${{ parameters.artifactName }} --no-build'
+      zipAfterPublish: false
+      modifyOutputPath: false
+
+  # Include test configuration files
+  - task: CopyFiles@2
+    displayName: 'Copy Test Configuration'
+    inputs:
+      SourceFolder: '${{ parameters.systemTestProject }}'
+      Contents: |
+        appsettings.json
+        appsettings.*.json
+        Configuration/**
+      TargetFolder: '$(Build.ArtifactStagingDirectory)/${{ parameters.artifactName }}'
+      OverWrite: true
+
+  # Publish system tests as pipeline artifact
+  - task: PublishPipelineArtifact@1
+    displayName: 'Publish System Tests Artifact'
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)/${{ parameters.artifactName }}'
+      artifactName: '${{ parameters.artifactName }}'
+      publishLocation: 'pipeline'

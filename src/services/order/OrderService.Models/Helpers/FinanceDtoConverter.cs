@@ -9,6 +9,23 @@ public static class FinanceDtoConverter
     {
         return new OrderDto(){ Id = order.Id, State = (OrderDtoState)order.State, Type = (OrderDtoType)order.Type, Items = order.Items?.Select(i => i.ToFinanceDto()).ToList(), Customer = order.Customer?.ToFinanceDto()};
     }
+    
+    /// <summary>
+    /// Converts Order to Finance DTO with pricing breakdown (service fees and discounts).
+    /// </summary>
+    public static OrderDto ToFinanceDto(this Order order, decimal? serviceFee, decimal? discount)
+    {
+        return new OrderDto()
+        { 
+            Id = order.Id, 
+            State = (OrderDtoState)order.State, 
+            Type = (OrderDtoType)order.Type, 
+            Items = order.Items?.Select(i => i.ToFinanceDto()).ToList(), 
+            Customer = order.Customer?.ToFinanceDto(),
+            ServiceFee = serviceFee,
+            Discount = discount
+        };
+    }
 
     public static OrderItemDto ToFinanceDto(this OrderItem item)
     {

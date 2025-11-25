@@ -2,8 +2,8 @@
 # These arguments allow us to easily change the base images if needed.
 ARG IMAGE_NET_ASPNET=mcr.microsoft.com/dotnet/aspnet
 ARG IMAGE_NET_SDK=mcr.microsoft.com/dotnet/sdk
-ARG IMAGE_NET_ASPNET_VERSION=9.0.9
-ARG IMAGE_NET_SDK_VERSION=9.0.305
+ARG IMAGE_NET_ASPNET_VERSION=10.0.0
+ARG IMAGE_NET_SDK_VERSION=10.0.100
 
 # Allow a suffix to be appended to the final ASP.NET image for development customization.
 # This can be overridden at build time with --build-arg ASPNET_SUFFIX=-noble-chiseled-extra
@@ -33,6 +33,7 @@ WORKDIR /src
 COPY ["services/frontendselfservicepos/FrontendSelfServicePos/FrontendSelfServicePos.csproj", "services/frontendselfservicepos/FrontendSelfServicePos/"]
 COPY ["common/FastFood.Common/FastFood.Common.csproj", "common/FastFood.Common/"]
 COPY ["common/FastFood.Observability.Common/FastFood.Observability.Common.csproj", "common/FastFood.Observability.Common/"]
+COPY ["common/FastFood.FeatureManagement.Common/FastFood.FeatureManagement.Common.csproj", "common/FastFood.FeatureManagement.Common/"]
 COPY ["services/order/OrderService.Common/OrderService.Common.csproj", "services/order/OrderService.Common/"]
 COPY ["services/frontendselfservicepos/FrontendSelfServicePos.Unit.Tests/FrontendSelfServicePos.Unit.Tests.csproj", "services/frontendselfservicepos/FrontendSelfServicePos.Unit.Tests/"]
 
@@ -90,7 +91,7 @@ RUN find /app/publish -type d -exec chmod 755 {} \; && \
 # Stage 5: Build the client application
 # ---------------------------------------------------------------------
 
-FROM node:18 AS client-build
+FROM node:24 AS client-build
 WORKDIR /src
 # Use separate COPY commands to ensure no issues with file existence
 COPY services/frontendselfservicepos/FrontendSelfServicePos/clientapp/package.json services/frontendselfservicepos/FrontendSelfServicePos/clientapp/

@@ -17,4 +17,14 @@ public interface IObservability
         [CallerMemberName] string name = "",
         ActivityKind kind = ActivityKind.Internal,
         bool includeCallerTypeInName = false);
+
+    /// <summary>
+    /// Counter for feature flag evaluations.
+    /// </summary>
+    Counter<long> FeatureEvaluationCounter { get; }
+
+    /// <summary>
+    /// Counter for feature flag actual usage (when feature is enabled and used).
+    /// </summary>
+    Counter<long> FeatureUsageCounter { get; }
 }

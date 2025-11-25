@@ -1,0 +1,118 @@
+parameters:
+- name: AzureSubscription
+  type: string
+  default:
+- name: ResourceGroup
+  type: string
+  default:
+- name: ElasticPoolName
+  type: string
+  default:
+- name: AzureSqlName
+  type: string
+  default:
+- name: ManagedIdentity
+  type: string
+  default:
+- name: DeploymentManagedidentity
+  type: string
+  default: 
+- name: DbName
+  type: string
+  default:
+- name: SetupBackup
+  type: boolean
+  default: true
+- name: BackupWeeklyPeriod
+  type: string
+  default: ""
+  displayName: Retention for the weekly backup as a number. There is a minimum of 7 days and a maximum of 10 years.
+- name: BackupMonthlyPeriod
+  type: string
+  default: ""
+  displayName: Retention for the monthly backup as a number. There is a minimum of 7 days and a maximum of 10 years.
+
+steps:
+- task: AzureCLI@2
+  displayName: Create Azure Sql Database for instance ${{ parameters.DbName }}
+  inputs:
+    azureSubscription: "${{ parameters.AzureSubscription }}"
+    scriptType: "pscore"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      az sql db create -g ${{ parameters.ResourceGroup }} -s ${{ parameters.AzureSqlName }} -n ${{ parameters.DbName }} --elastic-pool ${{ parameters.ElasticPoolName }}
+  
+- task: AzureCLI@2
+  displayName: "Create user for Managed Identity ${{ parameters.Managedidentity }}"
+  inputs:
+    azureSubscription: "${{ parameters.AzureSubscription }}"
+    scriptType: "pscore"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      Write-Host "If this task fails, the service principal has no assigned `"Directory readers Role`""
+      $query = @"
+      IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '${{ parameters.Managedidentity }}')
+      BEGIN
+          PRINT N'CREATE LOGIN ${{ parameters.Managedidentity }}'
+          CREATE USER [${{ parameters.Managedidentity }}] FROM EXTERNAL PROVIDER;
+          ALTER ROLE db_datareader ADD MEMBER [${{ parameters.Managedidentity }}];
+          ALTER ROLE db_datawriter ADD MEMBER [${{ parameters.Managedidentity }}];    
+      END
+      ELSE
+      BEGIN
+          PRINT N'ALTER LOGIN ${{ parameters.Managedidentity }}'
+          ALTER ROLE db_datareader ADD MEMBER [${{ parameters.Managedidentity }}];
+          ALTER ROLE db_datawriter ADD MEMBER [${{ parameters.Managedidentity }}];
+      END
+      "@
+      $accessToken = az account get-access-token --resource "https://database.windows.net/" -o tsv --query 'accessToken'
+      Invoke-Sqlcmd -Query $query -ServerInstance ${{ parameters.AzureSqlName }}.database.windows.net -Database ${{ parameters.DbName }} -AccessToken $accessToken
+      Write-Host "Create login for Managed Identity ${{ parameters.Managedidentity }}"
+
+- task: AzureCLI@2
+  displayName: "Create user for Deployment Managed Identity ${{ parameters.DeploymentManagedidentity }}"
+  inputs:
+    azureSubscription: "${{ parameters.AzureSubscription }}"
+    scriptType: "pscore"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      Write-Host "If this task fails, the service principal has no assigned `"Directory readers Role`""
+      $query = @"
+      IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '${{ parameters.DeploymentManagedidentity }}')
+      BEGIN
+          PRINT N'CREATE LOGIN ${{ parameters.DeploymentManagedidentity }}'
+          CREATE USER [${{ parameters.DeploymentManagedidentity }}] FROM EXTERNAL PROVIDER;
+          ALTER ROLE db_owner ADD MEMBER [${{ parameters.DeploymentManagedidentity }}];
+      END
+      ELSE
+      BEGIN
+          PRINT N'ALTER LOGIN ${{ parameters.DeploymentManagedidentity }}'
+          ALTER ROLE db_owner ADD MEMBER [${{ parameters.DeploymentManagedidentity }}];
+      END
+      "@
+      $accessToken = az account get-access-token --resource "https://database.windows.net/" -o tsv --query 'accessToken'
+      Invoke-Sqlcmd -Query $query -ServerInstance ${{ parameters.AzureSqlName }}.database.windows.net -Database ${{ parameters.DbName }} -AccessToken $accessToken
+      Write-Host "Create login for Managed Identity ${{ parameters.DeploymentManagedidentity }}"
+
+- ${{ if eq(parameters.SetupBackup, true) }}:   
+  - task: AzureCLI@2
+    displayName: Define Azure Sql Database backup for instance ${{ parameters.DbName }}
+    inputs:
+      azureSubscription: "${{ parameters.AzureSubscription }}"
+      scriptType: "pscore"
+      scriptLocation: "inlineScript"
+      inlineScript: |
+        if ("${{ parameters.BackupWeeklyPeriod }}" -match "^\d+$") {
+          Write-Host "Define Azure Sql Database weekly backup to ${{ parameters.BackupWeeklyPeriod }} weeks for ${{ parameters.AzureSqlName }}"
+          az sql db ltr-policy set -g ${{ parameters.ResourceGroup }} -s ${{ parameters.AzureSqlName }} -n ${{ parameters.DbName }} --weekly-retention "P${{ parameters.BackupWeeklyPeriod }}W"
+        }
+        else {
+          Write-Host "No Azure Sql Database weekly backup for ${{ parameters.AzureSqlName }} defined"
+        }
+        if ("${{ parameters.BackupMonthlyPeriod }}" -match "^\d+$") {
+          Write-Host "Define Azure Sql Database monthly backup to ${{ parameters.BackupMonthlyPeriod }} monthls for ${{ parameters.AzureSqlName }}"
+          az sql db ltr-policy set -g ${{ parameters.ResourceGroup }} -s ${{ parameters.AzureSqlName }} -n ${{ parameters.DbName }} --monthly-retention "P${{ parameters.BackupMonthlyPeriod }}M"
+        }
+        else {
+          Write-Host "No Azure Sql Database monthly backup for ${{ parameters.AzureSqlName }} defined"
+        }

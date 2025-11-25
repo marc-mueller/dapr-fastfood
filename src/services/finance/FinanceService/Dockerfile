@@ -2,8 +2,8 @@
 # These arguments allow us to easily change the base images if needed.
 ARG IMAGE_NET_ASPNET=mcr.microsoft.com/dotnet/aspnet
 ARG IMAGE_NET_SDK=mcr.microsoft.com/dotnet/sdk
-ARG IMAGE_NET_ASPNET_VERSION=9.0.9
-ARG IMAGE_NET_SDK_VERSION=9.0.305
+ARG IMAGE_NET_ASPNET_VERSION=10.0.0
+ARG IMAGE_NET_SDK_VERSION=10.0.100
 
 # Allow a suffix to be appended to the final ASP.NET image for development customizatio n.
 # This can be overridden at build time with --build-arg ASPNET_SUFFIX=
@@ -31,6 +31,7 @@ WORKDIR /src
 COPY ["common/FastFood.Common/FastFood.Common.csproj", "common/FastFood.Common/"]
 COPY ["common/FastFood.Observability.Common/FastFood.Observability.Common.csproj", "common/FastFood.Observability.Common/"]
 COPY ["services/finance/FinanceService/FinanceService.csproj", "services/finance/FinanceService/"]
+COPY ["services/finance/FinanceService.Storage/FinanceService.Storage.csproj", "services/finance/FinanceService.Storage/"]
 COPY ["services/finance/FinanceService.Common/FinanceService.Common.csproj", "services/finance/FinanceService.Common/"]
 COPY ["services/finance/FinanceService.Unit.Tests/FinanceService.Unit.Tests.csproj", "services/finance/FinanceService.Unit.Tests/"]
 COPY ["services/finance/FinanceService.Common.Unit.Tests/FinanceService.Common.Unit.Tests.csproj", "services/finance/FinanceService.Common.Unit.Tests/"]

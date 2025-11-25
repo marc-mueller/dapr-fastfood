@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
@@ -9,15 +9,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Dapr.AspNetCore" Version="1.16.0" />
-        <PackageReference Include="Dapr.Actors" Version="1.16.0" />
-        <PackageReference Include="Dapr.Actors.AspNetCore" Version="1.16.0" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.9" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
+        <PackageReference Include="Dapr.AspNetCore" Version="1.16.1" />
+        <PackageReference Include="Dapr.Actors" Version="1.16.1" />
+        <PackageReference Include="Dapr.Actors.AspNetCore" Version="1.16.1" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.4.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
     </ItemGroup>
     
     <ItemGroup>
       <ProjectReference Include="..\..\..\common\FastFood.Common\FastFood.Common.csproj" />
+      <ProjectReference Include="..\..\..\common\FastFood.FeatureManagement.Common\FastFood.FeatureManagement.Common.csproj" />
       <ProjectReference Include="..\..\..\common\FastFood.Observability.Common\FastFood.Observability.Common.csproj" />
       <ProjectReference Include="..\OrderService.Models\OrderService.Models.csproj" />
     </ItemGroup>

@@ -16,19 +16,19 @@ namespace FastFoodDelivery.System.Tests
         private readonly string _orderServiceUrlWorkflow = "http://localhost:8601/api/orderworkflow";
         private readonly string _kitchenServiceUrl = "http://localhost:8701/api/kitchenwork";
 
-        [Fact]
+        [Fact(Skip = "Refactoring for public endpoints needed")]
         public async Task CompleteOrderProcessStateTest()
         {
             await CompleteOrderProcessTest(_orderServiceUrlState, _kitchenServiceUrl);
         }
         
-        [Fact]
+        [Fact(Skip = "Refactoring for public endpoints needed")]
         public async Task CompleteOrderProcessActorTest()
         {
             await CompleteOrderProcessTest(_orderServiceUrlActor, _kitchenServiceUrl);
         }
         
-        [Fact]
+        [Fact(Skip = "Refactoring for public endpoints needed")]
         public async Task CompleteOrderProcessWorkflowTest()
         {
             await CompleteOrderProcessTest(_orderServiceUrlWorkflow, _kitchenServiceUrl);
@@ -79,7 +79,7 @@ namespace FastFoodDelivery.System.Tests
             OrderDtoState? state; 
             do
             {
-                await Task.Delay(delay);
+                await Task.Delay(delay, Xunit.TestContext.Current.CancellationToken);
                 state = await GetOrderState(orderServiceUrl, orderId);
                 retry++;
             } while (retry <= maxRetries && (state == null ||  state != targetState));
@@ -91,7 +91,7 @@ namespace FastFoodDelivery.System.Tests
             OrderDto? order;
             do
             {
-                await Task.Delay(delay);
+                await Task.Delay(delay, Xunit.TestContext.Current.CancellationToken);
                 order = await GetOrder(orderServiceUrl, orderId);
                 retry++;
             } while (retry <= maxRetries && (order == null || order.Items == null  || !order.Items.Any(i => i.Id == itemId)));

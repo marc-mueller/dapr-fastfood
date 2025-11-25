@@ -108,6 +108,9 @@ stages:
           container: worker
           serviceName: '$(serviceName)'
           displayName: 'Run System Tests for PR $(System.PullRequest.PullRequestId)'
+          posUrl: 'selfservicepos.fastfood.$(namespace).aksdemo.4tecture.ch'
+          kitchenUrl: 'kitchenmonitor.fastfood.$(namespace).aksdemo.4tecture.ch'
+          orderStatusUrl: 'customerorderstatus.fastfood.$(namespace).aksdemo.4tecture.ch'
           pool:
             ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
               vmImage: ${{ variables['poolVmImage'] }}

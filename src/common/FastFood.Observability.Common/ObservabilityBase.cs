@@ -12,9 +12,22 @@ public class ObservabilityBase : IObservability
     this.Meter = new Meter(this.ServiceName, version);
     this.ActivitySourceName = activitySourceName;
     this.ActivitySource = new ActivitySource(activitySourceName, version);
+    
+    // Initialize feature flag metrics
+    this.FeatureEvaluationCounter = this.Meter.CreateCounter<long>(
+        "feature.evaluation",
+        description: "Number of feature flag evaluations");
+    
+    this.FeatureUsageCounter = this.Meter.CreateCounter<long>(
+        "feature.usage",
+        description: "Number of times features are actively used");
   }
 
   public string ServiceName { get; }
+  
+  public Counter<long> FeatureEvaluationCounter { get; }
+  
+  public Counter<long> FeatureUsageCounter { get; }
 
   protected Meter Meter { get; }
 

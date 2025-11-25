@@ -18,6 +18,8 @@ services:
       - Observability__UseLogExporter=OtlpAndAnsiConsole
       - Observability__SamplerType=AlwaysOnSampler
       - Observability__OtlpExporter__Endpoint=http://otel-collector:4317
+    env_file:
+      - $HOME/.fastfoodtestenv/financeservice.env
     networks:
       - fastfoodnet
 
@@ -467,6 +469,26 @@ services:
       - "traefik.http.services.daprdashboard.loadbalancer.server.port=8080"
     networks:
       - fastfoodnet
+
+  sqldb:
+    container_name: sqldb-fastfood
+    hostname: sqldb-fastfood
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
+#    image: "mcr.microsoft.com/azure-sql-edge:latest"
+    ports:
+      - '1433:1433'
+#    user: '0:0'
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=welcome!123
+#    volumes:
+#      - '../infrastructure-dev/mssql/data:/var/opt/mssql/data'
+#      - '../infrastructure-dev/mssql/backup:/var/opt/mssql/backup'
+    networks:
+      fastfoodnet:
+        aliases:
+          - sqldb-fastfood
+    
 
   proxy:
     container_name: proxy

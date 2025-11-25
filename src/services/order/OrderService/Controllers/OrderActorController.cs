@@ -1,4 +1,5 @@
-﻿using FinanceService.Observability;
+﻿using FastFood.FeatureManagement.Common.Services;
+using FinanceService.Observability;
 using Microsoft.AspNetCore.Mvc;
 using OrderPlacement.Services;
 using OrderService.Common.Dtos;
@@ -10,7 +11,13 @@ namespace OrderPlacement.Controllers;
 [Route("api/[controller]")]
 public class OrderActorController : OrderController
 {
-    public OrderActorController(IOrderProcessingServiceActor orderProcessingService, IOrderServiceObservability observability,  ILogger<OrderActorController> logger) : base(orderProcessingService, observability, logger)
+    public OrderActorController(
+        IOrderProcessingServiceActor orderProcessingService, 
+        IOrderServiceObservability observability,
+        IObservableFeatureManager featureManager,
+        IOrderPricingService pricingService,
+        ILogger<OrderActorController> logger) 
+        : base(orderProcessingService, observability, featureManager, pricingService, logger)
     {
        
     }

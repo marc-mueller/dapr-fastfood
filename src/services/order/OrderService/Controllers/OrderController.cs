@@ -1,4 +1,7 @@
 ﻿using System.Diagnostics;
+using FastFood.FeatureManagement.Common.Constants;
+using FastFood.FeatureManagement.Common.Services;
+using FastFood.FeatureManagement.Common.Telemetry;
 using FinanceService.Observability;
 using Microsoft.AspNetCore.Mvc;
 using OrderPlacement.Services;
@@ -15,11 +18,20 @@ public partial class OrderController : ControllerBase
     private readonly ILogger<OrderController> _logger;
     private readonly IOrderProcessingService _orderProcessingService;
     private readonly IOrderServiceObservability _observability;
+    private readonly IObservableFeatureManager _featureManager;
+    private readonly IOrderPricingService _pricingService;
 
-    public OrderController(IOrderProcessingService orderProcessingService, IOrderServiceObservability observability, ILogger<OrderController> logger)
+    public OrderController(
+        IOrderProcessingService orderProcessingService, 
+        IOrderServiceObservability observability, 
+        IObservableFeatureManager featureManager,
+        IOrderPricingService pricingService,
+        ILogger<OrderController> logger)
     {
         _orderProcessingService = orderProcessingService;
         _observability = observability;
+        _featureManager = featureManager;
+        _pricingService = pricingService;
         _logger = logger;
     }
 
@@ -30,7 +42,15 @@ public partial class OrderController : ControllerBase
         try
         {
             var order = await _orderProcessingService.GetOrder(id);
-            return Ok(order.ToDto());
+            var orderDto = order.ToDto();
+            
+            // Calculate pricing breakdown with service fees and discounts
+            var pricing = await _pricingService.CalculateOrderPricing(order);
+            orderDto.Total = pricing.Total;
+            orderDto.ServiceFee = pricing.ServiceFee;
+            orderDto.Discount = pricing.Discount;
+            
+            return Ok(orderDto);
         }
         catch
         {
@@ -181,6 +201,33 @@ public partial class OrderController : ControllerBase
         try
         {
             activity?.SetTag("orderId", orderid);
+            
+            // Get the order to calculate pricing breakdown
+            var order = await _orderProcessingService.GetOrder(orderid);
+            var pricing = await _pricingService.CalculateOrderPricing(order);
+            
+            activity?.SetTag("orderSubtotal", pricing.Subtotal);
+            activity?.SetTag("orderTotal", pricing.Total);
+            
+            // Check loyalty program feature
+            var loyaltyEnabled = await _featureManager.IsEnabledAsync(FeatureFlags.LoyaltyProgram);
+            if (loyaltyEnabled && !string.IsNullOrEmpty(order.Customer?.LoyaltyNumber))
+            {
+                // Calculate 10% discount on subtotal (before service fees)
+                pricing.Discount = Math.Round(pricing.Subtotal * 0.10m, 2);
+                pricing.Total = pricing.Subtotal + (pricing.ServiceFee ?? 0m) - pricing.Discount.Value;
+                
+                FeatureFlagActivityEnricher.RecordFeatureUsage(activity, FeatureFlags.LoyaltyProgram, "discount_applied");
+                FeatureFlagActivityEnricher.RecordFeatureMetric(activity, FeatureFlags.LoyaltyProgram, "discount_amount", pricing.Discount.Value);
+                FeatureFlagActivityEnricher.RecordFeatureMetric(activity, FeatureFlags.LoyaltyProgram, "final_total", pricing.Total);
+                
+                _observability.FeatureUsageCounter.Add(1,
+                    new KeyValuePair<string, object?>("feature", FeatureFlags.LoyaltyProgram),
+                    new KeyValuePair<string, object?>("action", "discount_applied"));
+                
+                LogLoyaltyDiscountApplied(orderid, pricing.Discount.Value);
+            }
+            
             await _orderProcessingService.ConfirmOrder(orderid); // Fire and forget
             LogOrderConfirmed(orderid);
             return Ok(new OrderAcknowledgement { Message = "Order confirmation initiated", OrderId = orderid });
@@ -287,4 +334,7 @@ public partial class OrderController : ControllerBase
 
     [LoggerMessage(LogLevel.Error, "Failed to mark order with ID {orderId} as served")]  
     private partial void LogFailedToMarkOrderServed(Guid orderId);
+    
+    [LoggerMessage(LogLevel.Information, "Loyalty discount of {discount:C} applied to order {orderId}")]
+    private partial void LogLoyaltyDiscountApplied(Guid orderId, decimal discount);
 }

@@ -158,6 +158,38 @@ stages:
                 - script: |
                     echo "##vso[task.setvariable variable=artifactVersion]$(RESOURCES.PIPELINE.CIBUILDFINANCESERVICE.RUNNAME)"
                   displayName: 'Update artifact Version for Finance Service for tokenizer task'
+                - template: deploy/step-createazuremanagedidentity.yml
+                  parameters:
+                    AzureSubscription: '$(azureSubscription)'
+                    ManagedIdentity: 'financeservice-$(namespace)-smi'
+                    ManagedIdentityResourceGroup: '$(azureResourceGroup)'
+                    ManagedIdentityResourceGroupLocation: '$(azureResourceGroupLocation)'
+                    AksClusterName: '$(aksClusterName)'
+                    AksResourceGroup: '$(azureResourceGroup)'
+                    WorkloadIdentityNamespace: '$(namespace)'
+                    WorkloadIdentityServiceName: 'financeservice'
+                    VariablePrefix: 'AzureIdentity'
+                - template: deploy/step-createazuremanagedidentity.yml
+                  parameters:
+                    AzureSubscription: '$(azureSubscription)'
+                    ManagedIdentity: 'financeservice-$(namespace)-dmi'
+                    ManagedIdentityResourceGroup: '$(azureResourceGroup)'
+                    ManagedIdentityResourceGroupLocation: '$(azureResourceGroupLocation)'
+                    AksClusterName: '$(aksClusterName)'
+                    AksResourceGroup: '$(azureResourceGroup)'
+                    WorkloadIdentityNamespace: '$(namespace)'
+                    WorkloadIdentityServiceName: 'financeservice-deployment'
+                    VariablePrefix: 'DeploymentAzureIdentity'
+                - template: deploy/step-createdbazuresql.yml
+                  parameters:
+                    AzureSubscription: '$(azureSubscription)'
+                    ResourceGroup: '$(azureResourceGroup)'
+                    ElasticPoolName: '$(sqlElasticPoolName)'
+                    AzureSqlName: '$(sqlServerName)'
+                    DbName: 'FastFoodFinance-pr$(System.PullRequest.PullRequestId)'
+                    ManagedIdentity: 'financeservice-$(namespace)-smi'
+                    DeploymentManagedidentity: 'financeservice-$(namespace)-dmi'
+                    SetupBackup: false
                 - template: deploy/step-deployhelmchart.yml
                   parameters:
                     kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'

@@ -1,5 +1,5 @@
 dapr:
-  redisHost: "redis-master.redis:6379"
+  redisHost: "redis-ha-haproxy.redis:6379"
   redisPassword: ""
 
 frontendcustomerorderstatus:
@@ -9,14 +9,14 @@ frontendcustomerorderstatus:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-cluster
     hosts:
-      - host: customerordersstatus.fastfood.demo.reafx.net
+      - host: customerorderstatus.fastfood.demo.reafx.net
         paths:
           - path: /
             pathType: ImplementationSpecific
     tls: 
      - secretName: frontendcustomerorderstatus-tls
        hosts:
-         - customerordersstatus.fastfood.demo.reafx.net
+         - customerorderstatus.fastfood.demo.reafx.net
 
 frontendkitchenmonitor:
   ingress:

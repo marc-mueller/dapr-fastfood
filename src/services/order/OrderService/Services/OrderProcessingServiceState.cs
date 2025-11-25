@@ -1,5 +1,7 @@
 ﻿using Dapr.Client;
 using FastFood.Common;
+using FastFood.FeatureManagement.Common.Constants;
+using FastFood.FeatureManagement.Common.Services;
 using FinanceService.Observability;
 using OrderService.Models.Entities;
 using OrderService.Models.Helpers;
@@ -12,13 +14,23 @@ public partial class OrderProcessingServiceState : IOrderProcessingServiceState
     private readonly IOrderEventRouter _orderEventRouter;
     private readonly IOrderServiceObservability _observability;
     private readonly ILogger<OrderProcessingServiceState> _logger;
+    private readonly IOrderPricingService _pricingService;
+    private readonly IObservableFeatureManager _featureManager;
 
-    public OrderProcessingServiceState(DaprClient daprClient, IOrderEventRouter orderEventRouter, IOrderServiceObservability observability, ILogger<OrderProcessingServiceState> logger)
+    public OrderProcessingServiceState(
+        DaprClient daprClient, 
+        IOrderEventRouter orderEventRouter, 
+        IOrderServiceObservability observability, 
+        ILogger<OrderProcessingServiceState> logger,
+        IOrderPricingService pricingService,
+        IObservableFeatureManager featureManager)
     {
         _daprClient = daprClient;
         _orderEventRouter = orderEventRouter;
         _observability = observability;
         _logger = logger;
+        _pricingService = pricingService;
+        _featureManager = featureManager;
     }
     
     private string GetStateId(Guid orderid)
@@ -114,7 +126,18 @@ public partial class OrderProcessingServiceState : IOrderProcessingServiceState
         var order =  await _daprClient.GetStateAsync<Order>(FastFoodConstants.StateStoreName, GetStateId(orderid));
         if (order.State == OrderState.Creating)
         {
-            order.Items?.Add(item);
+            // Check if an item with the same ProductId already exists
+            var existingItem = order.Items?.FirstOrDefault(i => i.ProductId == item.ProductId);
+            if (existingItem != null)
+            {
+                // Update the quantity of the existing item
+                existingItem.Quantity += item.Quantity;
+            }
+            else
+            {
+                // Add the new item
+                order.Items?.Add(item);
+            }
 
             await _daprClient.SaveStateAsync(FastFoodConstants.StateStoreName,GetStateId(order.Id), order);
             await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
@@ -182,7 +205,19 @@ public partial class OrderProcessingServiceState : IOrderProcessingServiceState
             
             await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderPaid, order.ToDto());
 
-            await _daprClient.InvokeMethodAsync(HttpMethod.Post, FastFoodConstants.Services.FinanceService, "api/OrderFinance/newOrder", order.ToFinanceDto());
+            // Calculate pricing breakdown with service fees
+            var pricing = await _pricingService.CalculateOrderPricing(order);
+            
+            // Check for loyalty discount
+            decimal? discount = null;
+            var loyaltyEnabled = await _featureManager.IsEnabledAsync(FeatureFlags.LoyaltyProgram);
+            if (loyaltyEnabled && !string.IsNullOrEmpty(order.Customer?.LoyaltyNumber))
+            {
+                discount = Math.Round(pricing.Subtotal * 0.10m, 2);
+            }
+            
+            // Send to FinanceService with pricing breakdown
+            await _daprClient.InvokeMethodAsync(HttpMethod.Post, FastFoodConstants.Services.FinanceService, "api/OrderFinance/newOrder", order.ToFinanceDto(pricing.ServiceFee, discount));
         }
         else
         {

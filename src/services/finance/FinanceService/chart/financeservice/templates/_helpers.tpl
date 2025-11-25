@@ -51,12 +51,32 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Create the name of the service account to use
+Create the name of the runtime service account to use
 */}}
 {{- define "financeservice.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "financeservice.fullname" .) .Values.serviceAccount.name }}
+  {{- if .Values.serviceAccount.name }}
+    {{- .Values.serviceAccount.name }}
+  {{- else }}
+    {{- include "financeservice.fullname" . }}
+  {{- end }}
 {{- else }}
-{{- default "default" .Values.serviceAccount.name }}
+  {{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Create the name of the deploy/migration service account to use
+*/}}
+{{- define "financeservice.deployServiceAccountName" -}}
+{{- if .Values.deployServiceAccount.create }}
+  {{- if .Values.deployServiceAccount.name }}
+    {{- .Values.deployServiceAccount.name }}
+  {{- else }}
+    {{- printf "%s-deployment" (include "financeservice.fullname" .) }}
+  {{- end }}
+{{- else }}
+  {{- default "default" .Values.deployServiceAccount.name }}
 {{- end }}
 {{- end }}

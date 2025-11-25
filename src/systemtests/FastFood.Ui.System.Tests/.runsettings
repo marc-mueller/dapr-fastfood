@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <!-- Playwright Configuration -->
+  <Playwright>
+    <BrowserName>chromium</BrowserName>
+    <LaunchOptions>
+      <!-- 
+        Headless mode configuration:
+        - Default: true (headless mode for CI/CD pipelines)
+        - Local override: Create .runsettings.user with <Headless>false</Headless> for local debugging
+        - The .runsettings.user file is gitignored and will override this setting
+      -->
+      <Headless>true</Headless>
+    </LaunchOptions>
+  </Playwright>
+  
+  <!-- xUnit Configuration -->
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <!-- Uncomment to enable Playwright debug logs -->
+      <!-- <DEBUG>pw:api</DEBUG> -->
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>

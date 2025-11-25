@@ -2,8 +2,8 @@
 # These arguments allow us to easily change the base images if needed.
 ARG IMAGE_NET_ASPNET=mcr.microsoft.com/dotnet/aspnet
 ARG IMAGE_NET_SDK=mcr.microsoft.com/dotnet/sdk
-ARG IMAGE_NET_ASPNET_VERSION=9.0.9
-ARG IMAGE_NET_SDK_VERSION=9.0.305
+ARG IMAGE_NET_ASPNET_VERSION=10.0.0
+ARG IMAGE_NET_SDK_VERSION=10.0.100
 
 # Allow a suffix to be appended to the final ASP.NET image for development customization.
 # This can be overridden at build time with --build-arg ASPNET_SUFFIX=-noble-chiseled-extra
@@ -33,6 +33,7 @@ WORKDIR /src
 COPY ["services/order/OrderService/OrderService.csproj", "services/order/OrderService/"]
 COPY ["common/FastFood.Common/FastFood.Common.csproj", "common/FastFood.Common/"]
 COPY ["common/FastFood.Observability.Common/FastFood.Observability.Common.csproj", "common/FastFood.Observability.Common/"]
+COPY ["common/FastFood.FeatureManagement.Common/FastFood.FeatureManagement.Common.csproj", "common/FastFood.FeatureManagement.Common/"]
 COPY ["services/finance/FinanceService.Common/FinanceService.Common.csproj", "services/finance/FinanceService.Common/"]
 COPY ["services/kitchen/KitchenService.Common/KitchenService.Common.csproj", "services/kitchen/KitchenService.Common/"]
 COPY ["services/order/OrderService.Models/OrderService.Models.csproj", "services/order/OrderService.Models/"]

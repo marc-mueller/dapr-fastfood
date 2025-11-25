@@ -2,10 +2,6 @@ parameters:
   - name: displayName
     type: string
     default: 'Build and Publish Containerized Service'
-  - name: dockerFile
-    type: string
-  - name: dockerRepositoryName
-    type: string
   - name: chartPath
     type: string
   - name: artifactName
@@ -19,8 +15,6 @@ parameters:
   - name: helmVersion
     type: string
   - name: artifactStagingDirectory
-    type: string
-  - name: buildContext
     type: string
   - name: buildId
     type: string
@@ -39,12 +33,6 @@ parameters:
   - name: nugetFeeds
     type: object
     default: []
-  - name: publishArtifacts
-    type: object
-    default: []
-  - name: dockerArguments
-    type: string
-    default: ''
   - name: pool
     type: object
     default:
@@ -52,6 +40,19 @@ parameters:
   - name: container
     type: string
     default: ''
+  
+  # List of images to build
+  # dockerImages:
+  #  - dockerRepositoryName: string
+  #    dockerFile: string
+  #    dockerArguments: string
+  #    buildContext: string
+  #    publishArtifacts: object
+
+  - name: dockerImages
+    type: object
+    default: []
+
 
 jobs:
   - job: build
@@ -71,24 +72,30 @@ jobs:
           updateBuildNumber: ${{ parameters.updateBuildNumber }}
           servicePaths: ${{ parameters.servicePaths }}
           serviceTagPrefix: ${{ parameters.serviceTagPrefix }}
-      - template: ../build/step-buildandpublishdockerimage.yml
-        parameters:
-          azureContainerRegistryServiceConnection: ${{ parameters.azureContainerRegistryServiceConnection }}
-          dockerRepositoryName: ${{ parameters.dockerRepositoryName }}
-          dockerFile: ${{ parameters.dockerFile }}
-          dockerArguments: ${{ parameters.dockerArguments }}
-          buildId: ${{ parameters.buildId }}
-          buildNumber: ${{ parameters.buildNumber }}
-          buildContext: ${{ parameters.buildContext }}
-          nugetFeeds: ${{ parameters.nugetFeeds }}
-          publishArtifacts: ${{ parameters.publishArtifacts }}
-          netCoreAspNetVersion: ${{ parameters.netCoreAspNetVersion }}
-          netCoreSdkVersion: ${{ parameters.netCoreSdkVersion }}
-          ${{ if ne(parameters.container, '') }}:
-            runOnHost: true
+      - ${{ each img in parameters.dockerImages }}:
+        - template: ../build/step-buildandpublishdockerimage.yml
+          parameters:
+            azureContainerRegistryServiceConnection: ${{ parameters.azureContainerRegistryServiceConnection }}
+            dockerRepositoryName: ${{ img.dockerRepositoryName }}
+            dockerFile: ${{ img.dockerFile }}
+            dockerArguments: ${{ img.dockerArguments }}
+            buildId: ${{ parameters.buildId }}
+            buildNumber: ${{ parameters.buildNumber }}
+            buildContext: ${{ img.buildContext }}
+            nugetFeeds: ${{ parameters.nugetFeeds }}
+            publishArtifacts: ${{ img.publishArtifacts }}
+            netCoreAspNetVersion: ${{ parameters.netCoreAspNetVersion }}
+            netCoreSdkVersion: ${{ parameters.netCoreSdkVersion }}
+            ${{ if ne(parameters.container, '') }}:
+              runOnHost: true
       - template: ../build/step-buildhelmpackage.yml
         parameters:
           helmVersion: ${{ parameters.helmVersion }}
           artifactStagingDirectory: ${{ parameters.artifactStagingDirectory }}
           artifactName: ${{ parameters.artifactName }}
           chartPath: ${{ parameters.chartPath }}
+      - template: ../build/step-buildsystemtests.yml
+        parameters:
+          displayName: 'Build System Tests'
+          artifactName: 'systemtests'
+          buildConfiguration: 'Release'

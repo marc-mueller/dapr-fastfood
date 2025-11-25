@@ -2,7 +2,10 @@
 using Dapr.Actors.Runtime;
 using Dapr.Client;
 using FastFood.Common;
+using FastFood.FeatureManagement.Common.Constants;
+using FastFood.FeatureManagement.Common.Services;
 using FinanceService.Observability;
+using Microsoft.FeatureManagement.FeatureFilters;
 using OrderService.Models.Actors;
 using OrderService.Models.Entities;
 using OrderService.Models.Helpers;
@@ -15,11 +18,13 @@ public class OrderActor : Actor, IOrderActor, IRemindable
     private const string ReminderLostOrderDuringCreation = "OrderLostDuringCreation";
     private readonly DaprClient _daprClient;
     private readonly IOrderServiceActorObservability _observability;
+    private readonly IObservableFeatureManager _featureManager;
 
-    public OrderActor(ActorHost host, DaprClient daprClient, IOrderServiceActorObservability observability) : base(host)
+    public OrderActor(ActorHost host, DaprClient daprClient, IOrderServiceActorObservability observability, IObservableFeatureManager featureManager) : base(host)
     {
         _daprClient = daprClient;
         _observability = observability;
+        _featureManager = featureManager;
     }
 
     public async Task<Order> CreateOrder(Order order)
@@ -104,7 +109,19 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             {
                 order.Items = new List<OrderItem>();
             }
-            order.Items?.Add(item);
+            
+            // Check if an item with the same ProductId already exists
+            var existingItem = order.Items?.FirstOrDefault(i => i.ProductId == item.ProductId);
+            if (existingItem != null)
+            {
+                // Update the quantity of the existing item
+                existingItem.Quantity += item.Quantity;
+            }
+            else
+            {
+                // Add the new item
+                order.Items?.Add(item);
+            }
 
             await StateManager.SetStateAsync("order", order);
             await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderUpdated, order.ToDto());
@@ -177,7 +194,28 @@ public class OrderActor : Actor, IOrderActor, IRemindable
             
             await _daprClient.PublishEventAsync(FastFoodConstants.PubSubName, FastFoodConstants.EventNames.OrderPaid, order.ToDto());
             
-            await _daprClient.InvokeMethodAsync(HttpMethod.Post, FastFoodConstants.Services.FinanceService, "api/OrderFinance/newOrder", order.ToFinanceDto());
+            // Calculate pricing breakdown with service fees
+            var subtotal = order.Items?.Sum(item => item.ItemPrice * item.Quantity) ?? 0m;
+            decimal? serviceFee = null;
+            decimal? discount = null;
+            
+            // Check for dynamic pricing (peak hour service fee)
+            var targetingContext = new TargetingContext { UserId = order.Id.ToString(), Groups = new List<string>() };
+            var dynamicPricingEnabled = await _featureManager.IsEnabledAsync(FeatureFlags.DynamicPricing, targetingContext);
+            if (dynamicPricingEnabled)
+            {
+                serviceFee = Math.Round(subtotal * 0.20m, 2); // 20% service fee
+            }
+            
+            // Check for loyalty discount
+            var loyaltyEnabled = await _featureManager.IsEnabledAsync(FeatureFlags.LoyaltyProgram);
+            if (loyaltyEnabled && !string.IsNullOrEmpty(order.Customer?.LoyaltyNumber))
+            {
+                discount = Math.Round(subtotal * 0.10m, 2); // 10% discount on subtotal
+            }
+            
+            // Send to FinanceService with pricing breakdown
+            await _daprClient.InvokeMethodAsync(HttpMethod.Post, FastFoodConstants.Services.FinanceService, "api/OrderFinance/newOrder", order.ToFinanceDto(serviceFee, discount));
 
             await UnregisterReminderAsync(ReminderLostOrderDuringCreation);
 

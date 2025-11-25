@@ -17,7 +17,7 @@ public static class DtoConverter
     
     public static CustomerDto ToDto(this Customer customer)
     {
-        return new CustomerDto() { Id = customer.Id, FirstName = customer.FirstName, LastName = customer.LastName, InvoiceAddress = customer.InvoiceAddress?.ToDto(), DeliveryAddress = customer.DeliveryAddress?.ToDto() };
+        return new CustomerDto() { Id = customer.Id, FirstName = customer.FirstName, LastName = customer.LastName, LoyaltyNumber = customer.LoyaltyNumber, InvoiceAddress = customer.InvoiceAddress?.ToDto(), DeliveryAddress = customer.DeliveryAddress?.ToDto() };
     }
     
     public static AddressDto ToDto(this Address address)
@@ -37,7 +37,7 @@ public static class DtoConverter
     
     public static Customer ToEntity(this CustomerDto customer)
     {
-        return new Customer() { Id = customer.Id, FirstName = customer.FirstName, LastName = customer.LastName, InvoiceAddress = customer.InvoiceAddress?.ToEntity(), DeliveryAddress = customer.DeliveryAddress?.ToEntity()};
+        return new Customer() { Id = customer.Id, FirstName = customer.FirstName, LastName = customer.LastName, LoyaltyNumber = customer.LoyaltyNumber, InvoiceAddress = customer.InvoiceAddress?.ToEntity(), DeliveryAddress = customer.DeliveryAddress?.ToEntity()};
     }
     
     public static Address ToEntity(this AddressDto address)

@@ -22,6 +22,9 @@ spec:
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+        {{- if and .Values.workloadIdentity.enabled (eq .Values.workloadIdentity.provider "Azure") }}
+        azure.workload.identity/use: "true"
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -30,6 +33,15 @@ spec:
       serviceAccountName: {{ include "financeservice.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if not .Values.database.useInMemoryDatabase }}
+      initContainers:
+        - name: "{{ .Chart.Name }}-init"
+          image: "groundnuty/k8s-wait-for:no-root-v2.0"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "job"
+            - '{{ include "financeservice.fullname" . }}-dbdeployment-{{ .Release.Revision }}'
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -66,6 +78,15 @@ spec:
                   key: {{ $key }}
             {{- end }}
             {{- end }}            
+                  
+            - name: ConnectionStrings__FinanceDatabase
+              valueFrom:
+                secretKeyRef:
+                  name: financeservice-database
+                  key: ConnectionStrings__FinanceDatabase
+            
+            - name: FeatureManagement__UseInMemoryDatabase
+              value: {{ .Values.database.useInMemoryDatabase | quote }}
 
             {{- range $key, $value := .Values.observability }}
             {{- if eq $key "serviceName" }}

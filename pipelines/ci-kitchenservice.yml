@@ -24,8 +24,6 @@ jobs:
   - template: build/job-buildcontainerizedservice.yml
     parameters:
       displayName: "Build Kitchen Service"
-      dockerFile: '$(dockerFilePath)'
-      dockerRepositoryName: '$(dockerRepositoryName)'
       chartPath: '$(helmChartSourcePath)'
       artifactName: '$(pipelineArtifactName)'
       azureContainerRegistryServiceConnection: '$(azureContainerRegistryServiceConnection)'
@@ -33,7 +31,6 @@ jobs:
       netCoreSdkVersion: '$(netCoreSdkVersion)'
       helmVersion: '$(helmVersion)'
       artifactStagingDirectory: '$(Build.ArtifactStagingDirectory)'
-      buildContext: '$(Build.SourcesDirectory)/src'
       buildId: '$(Build.BuildId)'
       buildNumber: '$(Build.BuildNumber)'
       servicePaths:
@@ -42,13 +39,17 @@ jobs:
       installMonotag: false
       updateBuildNumber: true
       nugetFeeds: []
-      publishArtifacts:
-        - dockerfileTarget: "test"
-          imageLabel: "testresults"
-          directoryToCopy: "/testresults"
-          artifactName: "testresults"
-          publishType: "testResults"
-      dockerArguments: '--build-arg IMAGE_NET_ASPNET_VERSION=$(netCoreAspNetVersion) --build-arg IMAGE_NET_SDK_VERSION=$(netCoreSdkVersion)'
+      dockerImages:
+        - dockerRepositoryName: '$(dockerRepositoryName)'
+          dockerFile: '$(dockerFilePath)'
+          buildContext: '$(Build.SourcesDirectory)/src'
+          dockerArguments: '--build-arg IMAGE_NET_ASPNET_VERSION=$(netCoreAspNetVersion) --build-arg IMAGE_NET_SDK_VERSION=$(netCoreSdkVersion)'
+          publishArtifacts:
+            - dockerfileTarget: "test"
+              imageLabel: "testresults"
+              directoryToCopy: "/testresults"
+              artifactName: "testresults"
+              publishType: "testResults"
       pool:
         ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
           vmImage: ${{ variables['poolVmImage'] }}

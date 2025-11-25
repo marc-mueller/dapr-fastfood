@@ -30,14 +30,22 @@ parameters:
   - name: jobName
     type: string
     default: 'deploy'
+  - name: dependsOn
+    type: object
+    default: []
+  - name: variables
+    type: object
+    default: {}
 
 jobs:
   - deployment: ${{ parameters.jobName }}
     displayName: "${{ parameters.displayName }}"
     environment: ${{ parameters.environment }}
+    dependsOn: ${{ parameters.dependsOn }}
     pool: ${{ parameters.pool }}
     ${{ if ne(parameters.container, '') }}:
       container: ${{ parameters.container }}
+    variables: ${{ parameters.variables}}
     strategy:
       runOnce:
         deploy:

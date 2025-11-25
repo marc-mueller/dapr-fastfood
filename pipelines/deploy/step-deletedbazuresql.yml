@@ -1,0 +1,27 @@
+parameters:
+- name: AzureSubscription
+  type: string
+  default:
+- name: ResourceGroup
+  type: string
+  default:
+- name: AzureSqlName
+  type: string
+  default:
+- name: DbName
+  type: string
+  default:
+- name: continueOnError
+  type: boolean
+  default: false
+
+steps:
+- task: AzureCLI@2
+  displayName: Delete Azure SQL database ${{ parameters.DbName }}
+  inputs:
+    azureSubscription: '$(AzureSubscription)'
+    scriptType: 'pscore'
+    scriptLocation: 'inlineScript'
+    inlineScript: 'az sql db delete --name ${{ parameters.DbName }} --server ${{ parameters.AzureSqlName }} --resource-group ${{ parameters.ResourceGroup }} --yes'
+  ${{ if eq(parameters.continueOnError, true) }}:
+      continueOnError: true

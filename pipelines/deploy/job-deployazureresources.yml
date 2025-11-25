@@ -1,0 +1,119 @@
+parameters:
+  - name: environment
+    type: string
+  - name: createServiceManagedIdentity
+    type: boolean
+    default: false
+  - name: createDeploymentManagedIdentity
+    type: boolean
+    default: false
+  - name: createDatabase
+    type: boolean
+    default: false
+
+  - name: AzureSubscription
+    type: string
+  - name: ResourceGroup
+    type: string
+  - name: ResourceGroupLocation
+    type: string
+  - name: ServiceManagedIdentityName
+    type: string
+  - name: DeploymentManagedIdentityName
+    type: string
+  - name: ServiceManagedIdentityStepName
+    type: string
+    default: 'AzureIdentity'
+  - name: DeploymentManagedIdentityStepName
+    type: string
+    default: 'DeploymentAzureIdentity'
+  - name: AksClusterName
+    type: string
+    default: ''
+  - name: WorkloadIdentityServiceName
+    type: string
+    default: ''
+  - name: WorkloadIdentityDeploymentServiceName
+    type: string
+    default: '' 
+  - name: WorkloadIdentityNamespace
+    type: string
+    default: ''
+  - name: ElasticPoolName
+    type: string
+    default:
+  - name: AzureSqlName
+    type: string
+    default:
+  - name: DbName
+    type: string
+    default:
+
+
+  - name: displayName
+    type: string
+    default: 'Deploy Azure Resources'
+  - name: pool
+    type: object
+    default:
+      vmImage: 'ubuntu-latest'
+  - name: container
+    type: string
+    default: ''
+  - name: jobName
+    type: string
+    default: 'deployAzureResources'
+
+jobs:
+  - deployment: ${{ parameters.jobName }}
+    displayName: "${{ parameters.displayName }}"
+    environment: ${{ parameters.environment }}
+    pool: ${{ parameters.pool }}
+    ${{ if ne(parameters.container, '') }}:
+      container: ${{ parameters.container }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: none
+            - ${{ if eq(parameters.createServiceManagedIdentity, true) }}:
+                - template: step-createazuremanagedidentity.yml
+                  parameters:
+                    AzureSubscription: '${{ parameters.AzureSubscription }}'
+                    ManagedIdentity: '${{ parameters.ServiceManagedIdentityName }}'
+                    ManagedIdentityResourceGroup: '${{ parameters.ResourceGroup }}'
+                    ManagedIdentityResourceGroupLocation: '${{ parameters.ResourceGroupLocation }}'
+                    AksClusterName: '${{ parameters.AksClusterName }}'
+                    AksResourceGroup: '${{ parameters.ResourceGroup }}'
+                    WorkloadIdentityNamespace: '${{ parameters.WorkloadIdentityNamespace }}'
+                    WorkloadIdentityServiceName: '${{ parameters.WorkloadIdentityServiceName }}'
+                    VariablePrefix: '${{ parameters.ServiceManagedIdentityStepName }}'
+            - ${{ if eq(parameters.createDeploymentManagedIdentity, true) }}:
+                - template: step-createazuremanagedidentity.yml
+                  parameters:
+                    AzureSubscription: '${{ parameters.AzureSubscription }}'
+                    ManagedIdentity: '${{ parameters.DeploymentManagedIdentityName }}'
+                    ManagedIdentityResourceGroup: '${{ parameters.ResourceGroup }}'
+                    ManagedIdentityResourceGroupLocation: '${{ parameters.ResourceGroupLocation }}'
+                    AksClusterName: '${{ parameters.AksClusterName }}'
+                    AksResourceGroup: '${{ parameters.ResourceGroup }}'
+                    WorkloadIdentityNamespace: '${{ parameters.WorkloadIdentityNamespace }}'
+                    WorkloadIdentityServiceName: '${{ parameters.WorkloadIdentityDeploymentServiceName }}'
+                    VariablePrefix: '${{ parameters.DeploymentManagedIdentityStepName }}'
+            - ${{ if eq(parameters.createDatabase, true) }}:
+                - template: step-createdbazuresql.yml
+                  parameters:
+                    AzureSubscription: '${{ parameters.AzureSubscription }}'
+                    ResourceGroup: '${{ parameters.ResourceGroup }}'
+                    ElasticPoolName: '${{ parameters.ElasticPoolName }}'
+                    AzureSqlName: '${{ parameters.AzureSqlName }}'
+                    DbName: '${{ parameters.DbName }}'
+                    ${{ if eq(parameters.createServiceManagedIdentity, true) }}: 
+                      ManagedIdentity: '${{ parameters.ServiceManagedIdentityName}}'
+                    ${{ if eq(parameters.createDeploymentManagedIdentity, true) }}: 
+                      DeploymentManagedidentity: '${{ parameters.DeploymentManagedIdentityName}}'
+                    SetupBackup: false
+            
+
+
+            

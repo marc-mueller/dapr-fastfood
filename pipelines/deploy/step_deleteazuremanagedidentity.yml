@@ -1,0 +1,23 @@
+parameters:
+- name: AzureSubscription
+  type: string
+- name: ManagedIdentity
+  type: string
+- name: ManagedIdentityResourceGroup
+  type: string
+- name: continueOnError
+  type: boolean
+  default: false
+
+steps:
+- task: AzureCLI@2
+  displayName: "Delete Managed Identity ${{ parameters.Managedidentity }} in ${{ parameters.ManagedIdentityResourceGroup }}"
+  inputs:
+    azureSubscription: "${{ parameters.AzureSubscription }}"
+    scriptType: "pscore"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      az identity delete --name ${{ parameters.Managedidentity }} --resource-group ${{ parameters.ManagedIdentityResourceGroup }}
+  ${{ if eq(parameters.continueOnError, true) }}:
+      continueOnError: true
+  

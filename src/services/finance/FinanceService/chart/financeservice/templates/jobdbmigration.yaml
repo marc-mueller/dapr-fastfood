@@ -1,0 +1,32 @@
+{{- if not .Values.database.useInMemoryDatabase }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: '{{ include "financeservice.fullname" . }}-dbdeployment-{{ .Release.Revision }}'
+  labels:
+    {{- include "financeservice.labels" . | nindent 4 }}
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        {{- include "financeservice.labels" . | nindent 8 }}
+        {{- if and .Values.deployWorkloadIdentity.enabled (eq .Values.deployWorkloadIdentity.provider "Azure") }}
+        azure.workload.identity/use: "true"
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "financeservice.deployServiceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}-dbdeployment
+          image: "{{ .Values.image.dbdeployclirepository }}:{{ .Values.image.tag  | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["dotnet"]
+          args: ["FinanceService.Db.Cli.dll", "deploy", "--connectionstring", $(CONNECTIONSTRING) , "--dacpacfile", "FinanceService.Db.dacpac"]
+          env:
+            - name: CONNECTIONSTRING
+              valueFrom:
+                secretKeyRef:
+                  name: financeservice-database
+                  key: ConnectionStrings__FinanceDatabase
+      restartPolicy: Never  
+{{- end }}

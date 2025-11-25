@@ -18,6 +18,21 @@ parameters:
   - name: dependsOn
     type: object
     default: []
+  - name: posUrl
+    type: string
+    default: ''
+  - name: kitchenUrl
+    type: string
+    default: ''
+  - name: orderStatusUrl
+    type: string
+    default: ''
+  - name: testFilter
+    type: string
+    default: ''
+  - name: headedMode
+    type: boolean
+    default: false
 
 jobs:
   - job: ${{ parameters.jobName }}
@@ -27,13 +42,20 @@ jobs:
       container: ${{ parameters.container }}
     dependsOn: ${{ parameters.dependsOn }}
     steps:
-      - checkout: none
-      - bash: |
-          echo "Perform system tests."
-        displayName: 'System Tests'
+      - template: ../test/step-runsystemtests.yml
+        parameters:
+          displayName: 'Execute UI System Tests'
+          posUrl: '${{ parameters.posUrl }}'
+          kitchenUrl: '${{ parameters.kitchenUrl }}'
+          orderStatusUrl: '${{ parameters.orderStatusUrl }}'
+          publishVideos: true
+          headedMode: ${{ parameters.headedMode }}
+          ${{ if ne(parameters.testFilter, '') }}:
+            testFilter: '${{ parameters.testFilter }}'
+
       - template: ../pullrequest/step-setprstatus.yml
         parameters:
           state: 'succeeded'
-          description: '${{ parameters.serviceName }} PR Deployment'
+          description: '${{ parameters.serviceName }} PR Deployment Verified'
           contextName: 'pr-deployment-${{ parameters.serviceName }}'
           genre: 'pr-env'

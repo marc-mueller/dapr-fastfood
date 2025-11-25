@@ -1,3 +1,19 @@
 image:
   repository: __azureContainerRegistry__/financeservice
+  dbdeployclirepository: __azureContainerRegistry__/financeservice-dbdeployment
   tag: __artifactVersion__
+database:
+  connectionString: __connectionString__
+  useInMemoryDatabase: false
+workloadIdentity:
+  enabled: true
+  provider: "Azure"
+  azure:
+    clientId: "__serviceWorkloadIdentityClientId__"
+    name: "__serviceWorkloadIdentityName__"
+deployWorkloadIdentity:
+  enabled: true
+  provider: "Azure"
+  azure:
+    clientId: "__deployWorkloadIdentityClientId__"
+    name: "__deployWorkloadIdentityName__"

@@ -1,0 +1,149 @@
+parameters:
+  - name: displayName
+    type: string
+    default: 'Run System Tests'
+  - name: posUrl
+    type: string
+    default: ''
+  - name: kitchenUrl
+    type: string
+    default: ''
+  - name: orderStatusUrl
+    type: string
+    default: ''
+  - name: publishVideos
+    type: boolean
+    default: true
+  - name: headedMode
+    type: boolean
+    default: false
+  - name: testFilter
+    type: string
+    default: ''
+  - name: pipelineResourceAlias
+    type: string
+    default: 'CIBuild'
+  - name: artifactName
+    type: string
+    default: 'systemtests'
+
+steps:
+  
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download System Tests'
+    inputs:
+      source: 'specific'
+      project: '$(System.TeamProjectId)'
+      pipeline: '$(resources.pipeline.${{ parameters.pipelineResourceAlias }}.pipelineID)'
+      runVersion: 'specific'
+      runId: '$(resources.pipeline.${{ parameters.pipelineResourceAlias }}.runID)'
+      artifact: '${{ parameters.artifactName }}'
+      path: '$(Pipeline.Workspace)/${{ parameters.pipelineResourceAlias }}/${{ parameters.artifactName }}'
+
+  - bash: |
+      set -euxo pipefail
+
+      ROOT_DIR="$(Pipeline.Workspace)/${{ parameters.pipelineResourceAlias }}/${{ parameters.artifactName }}"
+      echo "Root dir: $ROOT_DIR"
+
+      echo "=== Listing downloaded tests ==="
+      ls -R "$ROOT_DIR"
+
+      echo "=== Making test hosts executable ==="
+      # If your test host is a file like FastFood.Ui.System.Tests (no extension)
+      find "$ROOT_DIR" -maxdepth 2 -type f -name '*.Ui.System.Tests' -exec chmod +x {} \;
+
+      echo "=== Fixing Playwright executables ==="
+      PW_DIR="$ROOT_DIR/.playwright"
+      if [ -d "$PW_DIR" ]; then
+        # Easiest and safest in CI: just mark everything under .playwright as executable
+        find "$PW_DIR" -type f -exec chmod +x {} \;
+        echo "Playwright contents after chmod:"
+        ls -R "$PW_DIR"
+      else
+        echo "WARNING: $PW_DIR does not exist – browsers may not be in the artifact"
+      fi
+
+      echo "=== Preparing video directory ==="
+      mkdir -p "$(Agent.TempDirectory)/Videos"
+      chmod 777 "$(Agent.TempDirectory)/Videos"
+    displayName: 'Create and set permissions for test execution'
+    target: host
+
+  - task: PowerShell@2
+    displayName: 'Install Playwright browsers'
+    inputs:
+      targetType: 'inline'
+      pwsh: true
+      script: |
+        $root = "$(Pipeline.Workspace)/${{ parameters.pipelineResourceAlias }}/${{ parameters.artifactName }}"
+        Write-Host "System tests root: $root"
+
+        # Find playwright.ps1 anywhere under the artifact root
+        $scriptPath = Get-ChildItem -Path $root -Recurse -Filter 'playwright.ps1' | Select-Object -First 1
+
+        if (-not $scriptPath) {
+          Write-Error "playwright.ps1 not found under $root"
+          exit 1
+        }
+
+        Write-Host "Found playwright.ps1 at: $($scriptPath.FullName)"
+        Write-Host "Installing Playwright browsers..."
+        & $scriptPath.FullName install
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: '$(Agent.TempDirectory)/ms-playwright'
+
+  # Run system tests
+  - task: DotNetCoreCLI@2
+    displayName: '${{ parameters.displayName }}'
+    inputs:
+      command: test
+      projects: '$(Pipeline.Workspace)/${{ parameters.pipelineResourceAlias }}/${{ parameters.artifactName }}/**/*.Ui.System.Tests.dll'
+      ${{ if ne(parameters.testFilter, '') }}:
+        arguments: '--logger trx --filter "${{ parameters.testFilter }}"'
+      ${{ else }}:
+        arguments: '--logger trx'
+    env:
+      # Test configuration URLs
+      TEST_POS_URL: 'https://${{ parameters.posUrl }}'
+      TEST_KITCHEN_URL: 'https://${{ parameters.kitchenUrl }}'
+      TEST_ORDERSTATUS_URL: 'https://${{ parameters.orderStatusUrl }}'
+      # Playwright configuration
+      HEADED: '${{ parameters.headedMode }}'
+      # CI environment flag
+      CI: 'true'
+      # Video output directory
+      VIDEO_OUTPUT_DIR: '$(Agent.TempDirectory)/Videos'
+      PLAYWRIGHT_BROWSERS_PATH: '$(Agent.TempDirectory)/ms-playwright'
+    continueOnError: true
+
+  # Publish test results
+  # - task: PublishTestResults@2
+  #   displayName: 'Publish Test Results'
+  #   inputs:
+  #     testResultsFiles: '$(Agent.TempDirectory)/*.trx'
+  #     testRunTitle: '${{ parameters.displayName }}'
+  #     mergeTestResults: true
+  #   condition: always()
+
+  # Publish video recordings
+  - pwsh: |
+      $videoPath = "$(Agent.TempDirectory)/Videos"
+      if (Test-Path $videoPath) {
+        $fileCount = (Get-ChildItem -Path $videoPath -Recurse -File | Measure-Object).Count
+        Write-Host "Found $fileCount video file(s) in $videoPath"
+        Write-Host "##vso[task.setvariable variable=HasVideos]true"
+      } else {
+        Write-Host "No videos directory found at $videoPath"
+        Write-Host "##vso[task.setvariable variable=HasVideos]false"
+      }
+    displayName: 'Check for Video Files'
+    condition: always()
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Video Recordings'
+    inputs:
+      PathtoPublish: '$(Agent.TempDirectory)/Videos'
+      ArtifactName: 'SystemTestVideos'
+      publishLocation: 'Container'
+    condition: and(always(), eq('${{ parameters.publishVideos }}', 'true'), eq(variables['HasVideos'], 'true'))

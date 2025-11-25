@@ -27,6 +27,7 @@ variables:
   - template: config/var-commonvariables.yml
   - template: config/var-commonvariables-release.yml
   - template: config/var-financeservice.yml
+  - group: fastfood-releasesecrets
 
 stages:
   - stage: Staging
@@ -37,17 +38,47 @@ stages:
       - name: namespace
         value: $(stagename)
     jobs:
+      - template: deploy/job-deployazureresources.yml
+        parameters:
+          container: worker
+          environment: 'fastfood-$(stagename)'
+          AzureSubscription: '$(azureSubscription)'
+          ResourceGroup: '$(azureResourceGroup)'
+          ResourceGroupLocation: '$(azureResourceGroupLocation)'
+          createServiceManagedIdentity: true
+          createDeploymentManagedIdentity: true
+          createDatabase: true
+          ServiceManagedIdentityName: '$(serviceName)-$(namespace)-smi'
+          DeploymentManagedIdentityName: '$(serviceName)-$(namespace)-dmi'
+          AksClusterName: '$(aksClusterName)'
+          WorkloadIdentityServiceName: '$(serviceName)'
+          WorkloadIdentityDeploymentServiceName: '$(serviceName)-deployment'
+          WorkloadIdentityNamespace: '$(namespace)'
+          ElasticPoolName: '$(sqlElasticPoolName)'
+          AzureSqlName: '$(sqlServerName)'
+          DbName: '$(databaseName)'
+          pool:
+            ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+              vmImage: ${{ variables['poolVmImage'] }}
+            ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+              name: ${{ variables['releasePoolDevTestName'] }}
+          jobName: 'deployAzureResources'
       - template: deploy/job-deployservicetok8s.yml
         parameters:
           container: worker
           environment: 'fastfood-$(stagename)'
+          dependsOn: ['deployAzureResources']
           namespace: '$(namespace)'
           valuesFile: '$(helmChartArtifactValuesFileDownloadPath)'
           artifactName: '$(pipelineArtifactName)'
           chartPackage: '$(helmChartArtifactDownloadPath)'
           kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
           updateBuildNumber: true
-          
+          variables:
+            serviceWorkloadIdentityClientId: $[ dependencies.deployAzureResources.outputs['deployAzureResources.AzureIdentity.ClientId'] ]
+            serviceWorkloadIdentityName: $[ dependencies.deployAzureResources.outputs['deployAzureResources.AzureIdentity.Name'] ]
+            deployWorkloadIdentityClientId: $[ dependencies.deployAzureResources.outputs['deployAzureResources.DeploymentAzureIdentity.ClientId'] ]
+            deployWorkloadIdentityName: $[ dependencies.deployAzureResources.outputs['deployAzureResources.DeploymentAzureIdentity.Name'] ]
           pool:
             ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
               vmImage: ${{ variables['poolVmImage'] }}
@@ -63,17 +94,47 @@ stages:
       - name: namespace
         value: $(stagename)
     jobs:
+      - template: deploy/job-deployazureresources.yml
+        parameters:
+          container: worker
+          environment: 'fastfood-$(stagename)'
+          AzureSubscription: '$(azureSubscription)'
+          ResourceGroup: '$(azureResourceGroup)'
+          ResourceGroupLocation: '$(azureResourceGroupLocation)'
+          createServiceManagedIdentity: true
+          createDeploymentManagedIdentity: true
+          createDatabase: true
+          ServiceManagedIdentityName: '$(serviceName)-$(namespace)-smi'
+          DeploymentManagedIdentityName: '$(serviceName)-$(namespace)-dmi'
+          AksClusterName: '$(aksClusterName)'
+          WorkloadIdentityServiceName: '$(serviceName)'
+          WorkloadIdentityDeploymentServiceName: '$(serviceName)-deployment'
+          WorkloadIdentityNamespace: '$(namespace)'
+          ElasticPoolName: '$(sqlElasticPoolName)'
+          AzureSqlName: '$(sqlServerName)'
+          DbName: '$(databaseName)'
+          pool:
+            ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+              vmImage: ${{ variables['poolVmImage'] }}
+            ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+              name: ${{ variables['releasePoolDevTestName'] }}
+          jobName: 'deployAzureResources'
       - template: deploy/job-deployservicetok8s.yml
         parameters:
           container: worker
           environment: 'fastfood-$(stagename)'
+          dependsOn: ['deployAzureResources']
           namespace: '$(namespace)'
           valuesFile: '$(helmChartArtifactValuesFileDownloadPath)'
           artifactName: '$(pipelineArtifactName)'
           chartPackage: '$(helmChartArtifactDownloadPath)'
           kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
           updateBuildNumber: true
-          
+          variables:
+            serviceWorkloadIdentityClientId: $[ dependencies.deployAzureResources.outputs['deployAzureResources.AzureIdentity.ClientId'] ]
+            serviceWorkloadIdentityName: $[ dependencies.deployAzureResources.outputs['deployAzureResources.AzureIdentity.Name'] ]
+            deployWorkloadIdentityClientId: $[ dependencies.deployAzureResources.outputs['deployAzureResources.DeploymentAzureIdentity.ClientId'] ]
+            deployWorkloadIdentityName: $[ dependencies.deployAzureResources.outputs['deployAzureResources.DeploymentAzureIdentity.Name'] ]
           pool:
             ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
               vmImage: ${{ variables['poolVmImage'] }}
@@ -90,10 +151,38 @@ stages:
         value: $(stagename)-$(System.PullRequest.PullRequestId)
       - name: redisDB
         value: $[counter(format('{0:yyyyMM}', pipeline.startTime), 3)]
+      - name: databaseName
+        value: 'FastFoodFinance-pr$(System.PullRequest.PullRequestId)'
     jobs:
+      - template: deploy/job-deployazureresources.yml
+        parameters:
+          container: worker
+          environment: 'fastfood-$(stagename)'
+          AzureSubscription: '$(azureSubscription)'
+          ResourceGroup: '$(azureResourceGroup)'
+          ResourceGroupLocation: '$(azureResourceGroupLocation)'
+          createServiceManagedIdentity: true
+          createDeploymentManagedIdentity: true
+          createDatabase: true
+          ServiceManagedIdentityName: '$(serviceName)-$(namespace)-smi'
+          DeploymentManagedIdentityName: '$(serviceName)-$(namespace)-dmi'
+          AksClusterName: '$(aksClusterName)'
+          WorkloadIdentityServiceName: '$(serviceName)'
+          WorkloadIdentityDeploymentServiceName: '$(serviceName)-deployment'
+          WorkloadIdentityNamespace: '$(namespace)'
+          ElasticPoolName: '$(sqlElasticPoolName)'
+          AzureSqlName: '$(sqlServerName)'
+          DbName: '$(databaseName)'
+          pool:
+            ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+              vmImage: ${{ variables['poolVmImage'] }}
+            ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+              name: ${{ variables['releasePoolDevTestName'] }}
+          jobName: 'deployAzureResources'
       - template: deploy/job-deployservicetok8s.yml
         parameters:
           container: worker
+          dependsOn: ['deployAzureResources']
           environment: 'fastfood-$(stagename)'
           namespace: '$(namespace)'
           valuesFile: '$(helmChartArtifactValuesFileDownloadPath)'
@@ -101,18 +190,25 @@ stages:
           chartPackage: '$(helmChartArtifactDownloadPath)'
           kubernetesDeploymentServiceConnection: '$(kubernetesDeploymentServiceConnection)'
           updateBuildNumber: true
-          
           pool:
             ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
               vmImage: ${{ variables['poolVmImage'] }}
             ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
               name: ${{ variables['releasePoolDevTestName'] }}
+          variables:
+            serviceWorkloadIdentityClientId: $[ dependencies.deployAzureResources.outputs['deployAzureResources.AzureIdentity.ClientId'] ]
+            serviceWorkloadIdentityName: $[ dependencies.deployAzureResources.outputs['deployAzureResources.AzureIdentity.Name'] ]
+            deployWorkloadIdentityClientId: $[ dependencies.deployAzureResources.outputs['deployAzureResources.DeploymentAzureIdentity.ClientId'] ]
+            deployWorkloadIdentityName: $[ dependencies.deployAzureResources.outputs['deployAzureResources.DeploymentAzureIdentity.Name'] ]
           jobName: 'deploy'
       - template: deploy/job-verifyprdeployment.yml
         parameters:
           container: worker
           serviceName: '$(serviceName)'
           displayName: 'Run System Tests for PR $(System.PullRequest.PullRequestId)'
+          posUrl: 'selfservicepos.fastfood.$(namespace).aksdemo.4tecture.ch'
+          kitchenUrl: 'kitchenmonitor.fastfood.$(namespace).aksdemo.4tecture.ch'
+          orderStatusUrl: 'customerorderstatus.fastfood.$(namespace).aksdemo.4tecture.ch'
           pool:
             ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
               vmImage: ${{ variables['poolVmImage'] }}

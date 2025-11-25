@@ -17,6 +17,20 @@ public class OrderDto
 
     public ICollection<OrderItemDto>? Items { get; set; }
     
+    public decimal Total { get; set; }
+    
+    /// <summary>
+    /// Peak hour service fee applied to order (DynamicPricing feature flag).
+    /// Null if no service fee applied.
+    /// </summary>
+    public decimal? ServiceFee { get; set; }
+    
+    /// <summary>
+    /// Loyalty program discount applied to order (LoyaltyProgram feature flag).
+    /// Null if no discount applied.
+    /// </summary>
+    public decimal? Discount { get; set; }
+    
     public string? CustomerComments { get; set; }
     
 }

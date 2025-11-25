@@ -1,0 +1,30 @@
+# Test videos
+videos/
+
+# Playwright browsers
+.playwright/
+
+# Build artifacts
+bin/
+obj/
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/

@@ -1,14 +1,21 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FastFood.Common.Settings;
+using FastFood.FeatureManagement.Common.Extensions;
 using FastFood.Observability.Common;
 using FinanceService.Observability;
 using OrderPlacement.Actors;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add Azure App Configuration if configured
+var appConfigConfigured = builder.Configuration.AddAzureAppConfigurationIfConfigured(builder.Configuration);
+
 var observabilityOptions = builder.Configuration.GetObservabilityOptions();
 builder.Services.AddObservability<IOrderServiceActorObservability, OrderServiceActorObservability>(observabilityOptions, options => new OrderServiceActorObservability(options.ServiceName, options.ServiceName));
+
+// Add Feature Management (with Azure App Configuration support)
+builder.Services.AddObservableFeatureManagement();
 
 var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT") ?? "3650";
 var daprGrpcPort = Environment.GetEnvironmentVariable("DAPR_GRPC_PORT") ?? "60650";
@@ -39,6 +46,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCloudEvents();
+
+// Add Azure App Configuration refresh middleware if configured
+if (appConfigConfigured)
+{
+    app.UseAzureAppConfiguration();
+}
 
 app.UseObservability(observabilityOptions);
 

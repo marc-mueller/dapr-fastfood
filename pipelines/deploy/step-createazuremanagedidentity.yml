@@ -1,0 +1,93 @@
+parameters:
+- name: AzureSubscription
+  type: string
+- name: ManagedIdentity
+  type: string
+- name: ManagedIdentityResourceGroup
+  type: string
+- name: ManagedIdentityResourceGroupLocation
+  type: string
+- name: VariablePrefix
+  type: string
+  default: 'AzureIdentity'
+- name: KubernetesClusterOidcIssuer
+  type: string
+  default: ''
+- name: AksClusterName
+  type: string
+  default: ''
+- name: AksResourceGroup
+  type: string
+  default: ''
+- name: WorkloadIdentityNamespace
+  type: string
+  default: ''
+- name: WorkloadIdentityServiceName
+  type: string
+  default: ''
+
+steps:
+- task: AzureCLI@2
+  displayName: "Create Managed Identity ${{ parameters.Managedidentity }} in ${{ parameters.ManagedIdentityResourceGroup }}"
+  inputs:
+    azureSubscription: "${{ parameters.AzureSubscription }}"
+    scriptType: "pscore"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      $managedIdentityPrincipalId=$(az identity create --name ${{ parameters.Managedidentity }} --resource-group ${{ parameters.ManagedIdentityResourceGroup }} --location '${{ parameters.ManagedIdentityResourceGroupLocation }}' --query 'principalId' -o tsv)                
+      $subscriptionid = az account show --query 'id' -o tsv
+      az role assignment create --role Reader --assignee-object-id $managedIdentityPrincipalId --assignee-principal-type ServicePrincipal --scope /subscriptions/$subscriptionid/resourcegroups/${{ parameters.ManagedIdentityResourceGroup }}
+ 
+- task: AzureCLI@2
+  displayName: "Read Managed Identity Ids"
+  name: ${{ parameters.VariablePrefix }}
+  inputs:
+    azureSubscription: "${{ parameters.AzureSubscription }}"
+    scriptType: "pscore"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      $resourceGrpoupMcAks = "${{ parameters.ManagedIdentityResourceGroup }}"
+      $azureIdentityName = "${{ parameters.ManagedIdentity }}"
+
+      $azureIdentityClientId = az identity show --resource-group $resourceGrpoupMcAks --name $azureidentityName --query 'clientId' -o tsv
+      $subscriptionid = az account show --query 'id' -o tsv
+      $azureIdentityResourceId = "/subscriptions/$subscriptionid/resourceGroups/$resourceGrpoupMcAks/providers/Microsoft.ManagedIdentity/userAssignedIdentities/$azureidentityName"
+
+      Write-Host "##vso[task.setvariable variable=Name;isoutput=true]$azureIdentityName"
+      Write-Host "##vso[task.setvariable variable=ResourceId;isoutput=true]$azureIdentityResourceId"
+      Write-Host "##vso[task.setvariable variable=ClientId;isoutput=true]$azureIdentityClientId"
+
+
+- task: AzureCLI@2
+  displayName: "Establish Federated Identity Credential for ${{ parameters.ManagedIdentity }}"
+  inputs:
+    azureSubscription: "${{ parameters.AzureSubscription }}"
+    scriptType: "pscore"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      # Initialize variables
+      $kubernetesClusterOidcIssuer = "${{ parameters.KubernetesClusterOidcIssuer }}"
+      $aksClusterName = "${{ parameters.AksClusterName }}"
+      $aksClusterResourceGroup = "${{ parameters.AksResourceGroup }}"
+      $workloadIdentityNamespace = "${{ parameters.WorkloadIdentityNamespace }}"
+      $workloadIdentityServiceName = "${{ parameters.WorkloadIdentityServiceName }}"
+      $managedIdentity = "${{ parameters.ManagedIdentity }}"
+      $managedIdentityResourceGroup = "${{ parameters.ManagedIdentityResourceGroup }}"
+
+      # Check if the Kubernetes OIDC Issuer URL is provided
+      if (-not [string]::IsNullOrWhiteSpace($kubernetesClusterOidcIssuer)) {
+        Write-Host "Using provided Kubernetes Cluster OIDC Issuer URL: $kubernetesClusterOidcIssuer"
+      }
+      elseif (-not [string]::IsNullOrWhiteSpace($aksClusterName) -and -not [string]::IsNullOrWhiteSpace($aksClusterResourceGroup)) {
+        Write-Host "Retrieving Kubernetes Cluster OIDC Issuer URL for AKS Cluster: $aksClusterName in $aksClusterResourceGroup"
+        $kubernetesClusterOidcIssuer = az aks show -n $aksClusterName -g $aksClusterResourceGroup --query "oidcIssuerProfile.issuerUrl" -o tsv
+      }
+      else {
+        Write-Error "Neither KubernetesClusterOidcIssuer nor AksClusterName and AksClusterREsourceGroup parameters are provided."
+        exit 1
+      }
+
+      # Create Federated Identity Credential
+      az identity federated-credential create --name "aks-fc-$($workloadIdentityNamespace)-$($workloadIdentityServiceName)" --identity-name $managedIdentity --resource-group $managedIdentityResourceGroup --issuer $kubernetesClusterOidcIssuer --subject "system:serviceaccount:$($workloadIdentityNamespace):$($workloadIdentityServiceName)" --audience "api://AzureADTokenExchange"
+      Write-Host "Federated identity credentials established for managed identity $($managedIdentity) with OIDC Issuer $($kubernetesClusterOidcIssuer)"
+  

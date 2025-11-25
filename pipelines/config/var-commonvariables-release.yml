@@ -11,3 +11,15 @@ variables:
   value: '$(Pipeline.Workspace)/CIBuild/$(pipelineArtifactName)/$(serviceName)-$(artifactVersion).tgz'
 - name: helmChartArtifactValuesFileDownloadPath
   value: '$(Pipeline.Workspace)/CIBuild/$(pipelineArtifactName)/$(stagename)/values.yml'
+- name: azureSubscription
+  value: '<providedbysecret-sensitivedata>'
+- name: azureResourceGroup
+  value: '<providedbysecret-sensitivedata>'
+- name: azureResourceGroupLocation
+  value: '<providedbysecret-sensitivedata>'
+- name: aksClusterName
+  value: '<providedbysecret-sensitivedata>'
+- name: sqlElasticPoolName
+  value: '<providedbysecret-sensitivedata>'
+- name: sqlServerName
+  value: '<providedbysecret-sensitivedata>'

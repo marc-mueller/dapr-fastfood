@@ -9,6 +9,13 @@ variables:
   value: 'FinanceService'
 - name: dockerRepositoryName
   value: $(serviceName)
+- name: dockerRepositoryNameDeploy
+  value: $(serviceName)-dbdeployment
 - name: versionTagPrefix
   value: 'finance'
-
+- name: dockerFilePathDeploy
+  value: 'src/services/$(folderNameComponent)/$(folderNameService).Db.Cli/Dockerfile'
+- name: databaseName
+  value: 'FastFoodFinance'
+- name: connectionString
+  value: 'Server=$(sqlServerName).database.windows.net,1433;Database=$(databaseName);TrustServerCertificate=True;'
