@@ -277,11 +277,8 @@ namespace FastFood.Observability.Common
                 services.Configure<SqlClientTraceInstrumentationOptions>(o =>
                 {
                     o.Filter = observabilityOptions.SqlClientInstrumentation.Filter;
-                    o.SetDbStatementForText = observabilityOptions.SqlClientInstrumentation.SetDbStatementForText;
                     o.RecordException = observabilityOptions.SqlClientInstrumentation.RecordException;
-                    o.Enrich = observabilityOptions.SqlClientInstrumentation.Enrich;
-                    o.SetDbStatementForStoredProcedure = observabilityOptions.SqlClientInstrumentation.SetDbStatementForStoredProcedure;
-                    o.EnableConnectionLevelAttributes = observabilityOptions.SqlClientInstrumentation.EnableConnectionLevelAttributes;
+                    o.EnrichWithSqlCommand = observabilityOptions.SqlClientInstrumentation.EnrichWithSqlCommand;
                 });
                 builder.AddSqlClientInstrumentation();
             }

@@ -163,6 +163,13 @@ jobs:
       fetchTags: ${{ parameters.checkoutFetchTags }}
       lfs: ${{ parameters.checkoutLfs }}
 
+    - ${{ if eq(parameters.container, '') }}:
+      - task: UseDotNet@2
+        displayName: 'Install .NET SDK (global.json)'
+        inputs:
+          packageType: sdk
+          useGlobalJson: true
+
     - script: |
         echo "dotnet: $(dotnet --version)"
         node --version || true
