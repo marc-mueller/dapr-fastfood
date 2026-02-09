@@ -56,3 +56,39 @@ jobs:
         ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
           name: ${{ variables['buildPoolName'] }}
       container: worker
+  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+    - template: security/job-securityscan.yml
+      parameters:
+        pool:
+          ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+            vmImage: ${{ variables['poolVmImage'] }}
+          ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+            name: ${{ variables['releasePoolDevTestName'] }}
+        jobName: 'securityscan'
+        dependsOn: ['build'] 
+        # container: worker
+        runCodeQL: true
+        runDependencyCheck: true
+        runLicenseScan: true
+        dotnetSolutionsOrProjects: ['src/services/$(folderNameComponent)/$(folderNameService)/$(folderNameService).csproj']
+        imagesToScan: ['$(azureContainerRegistry)/$(dockerRepositoryName):$(Build.BuildNumber)']
+        helmChartFolders: ['$(helmChartSourcePath)']
+        containerRegistryServiceConnection: $(azureContainerRegistryServiceConnection)
+        feedsToUse: 'config'
+        nugetConfigPath: 'nuget.config'
+        dotnetBuildConfiguration: 'Release'
+        trivyFsTargets: ['.']
+        trivyConfigPath: '.trivy.yaml'
+        finalizationSteps:
+          - template: pullrequest/step-setprstatus.yml
+            parameters:
+              condition: succeeded()
+              state: 'succeeded'
+              description: 'PR Security Scan Completed Successfully'
+              contextName: 'fastfood-security-scan'
+          - template: pullrequest/step-setprstatus.yml
+            parameters:
+              condition: failed()
+              state: 'failed'
+              description: 'PR Security Scan failed'
+              contextName: 'fastfood-security-scan'

@@ -18,6 +18,9 @@ parameters:
   - name: iteration     
     type: string
     default: '$(System.PullRequest.PullRequestIteration)'
+  - name: condition
+    type: string
+    default: succeeded()  # only run on success
 
 steps:
 # - task: PullRequestStatus@0
@@ -33,6 +36,7 @@ steps:
   displayName: "Set PR status: ${{ parameters.contextName }} → ${{ parameters.state }}"
   env:
     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+  condition: ${{ parameters.condition }}
   inputs:
     targetType: 'inline'
     script: |

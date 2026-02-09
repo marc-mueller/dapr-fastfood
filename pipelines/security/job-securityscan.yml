@@ -1,0 +1,377 @@
+parameters:
+  - name: pool
+    type: object
+    default:
+      vmImage: 'ubuntu-latest'
+  - name: container
+    type: string
+    default: ''
+
+  # Checkout
+  - name: checkoutFetchDepth
+    type: number
+    default: 0           # 0 = full history (needed for GitVersion)
+  - name: checkoutFetchTags
+    type: boolean
+    default: true
+  - name: checkoutLfs
+    type: boolean
+    default: true
+
+  # Job wiring
+  - name: dependsOn
+    type: object
+    default: []                     # optional: list of job names this job depends on
+  - name: displayName
+    type: string
+    default: 'Security: GHAS + Trivy'
+  - name: jobName
+    type: string
+    default: security_scan
+
+  # Caller-supplied init steps (run after checkout)
+  - name: initSteps
+    type: stepList
+    default: []
+
+  # Caller-supplied finalization steps (run at end)
+  - name: finalizationSteps
+    type: stepList
+    default: []
+
+  # Switches
+  - name: runCodeQL
+    type: boolean
+    default: true                   # enable/disable CodeQL
+  - name: runDependencyCheck
+    type: boolean
+    default: true          # enable/disable GHAS dependency scanning
+  - name: runLicenseScan
+    type: boolean
+    default: true
+
+  # CodeQL
+  - name: codeqlLanguages
+    type: string
+    default: 'csharp,javascript'
+
+  # .NET inputs — either explicit list or globs
+  - name: dotnetSolutionsOrProjects
+    type: object
+    default: []
+  - name: dotnetProjectGlobs
+    type: string
+    default: ''
+  - name: dotnetBuildConfiguration
+    type: string
+    default: 'Release'
+
+  # NuGet feeds
+  - name: feedsToUse
+    type: string
+    default: 'config'              # 'config' | 'select' | 'feed'
+  - name: nugetConfigPath
+    type: string
+    default: 'nuget.config'
+  - name: externalFeedCredentials
+    type: string
+    default: ''
+
+  # Extra args
+  - name: dotnetRestoreExtraArgs
+    type: string
+    default: ''
+  - name: dotnetBuildAdditionalArgs
+    type: string
+    default: ''
+  - name: npmFolders
+    type: object
+    default: []
+
+  # Containers
+  - name: imagesToScan
+    type: object
+    default: []
+  - name: dockerfilesToBuild
+    type: object
+    default: []
+  - name: dockerBuildContext
+    type: string
+    default: '.'
+  - name: dockerBuildArgs
+    type: string
+    default: ''
+  - name: containerRegistryServiceConnection
+    type: string
+    default: ''
+  # Helm
+  - name: helmChartFolders
+    type: object
+    default: []
+
+  # Trivy tuning
+  - name: trivyVersion
+    type: string
+    default: 'latest'
+  - name: trivyCacheDir
+    type: string
+    default: '$(Pipeline.Workspace)/.trivycache'
+  - name: trivySeverityFail
+    type: string
+    default: 'CRITICAL,HIGH'
+  - name: trivyExitCodeVuln
+    type: number
+    default: 0
+  - name: trivyFsTargets
+    type: object
+    default: ['.']
+  - name: trivyFsScanners
+    type: string
+    default: 'vuln,secret' # license scanner is in a separate task
+  - name: trivyFsSkipDirs
+    type: object
+    default: []
+  - name: trivyFsSkipFiles
+    type: object
+    default: []
+  - name: trivyConfigPath
+    type: string
+    default: ''
+
+  # SARIF
+  - name: publishSarif
+    type: boolean
+    default: true
+
+jobs:
+- job: ${{ parameters.jobName }}
+  displayName: ${{ parameters.displayName }}
+
+  # Optional dependsOn
+  ${{ if gt(length(parameters.dependsOn), 0) }}:
+    dependsOn: ${{ parameters.dependsOn }}
+
+  pool: ${{ parameters.pool }}
+
+  ${{ if ne(parameters.container, '') }}:
+    container: ${{ parameters.container }}
+
+  steps:
+    - checkout: self
+      persistCredentials: true
+      fetchDepth: ${{ parameters.checkoutFetchDepth }}
+      fetchTags: ${{ parameters.checkoutFetchTags }}
+      lfs: ${{ parameters.checkoutLfs }}
+
+    - script: |
+        echo "dotnet: $(dotnet --version)"
+        node --version || true
+        npm --version  || true
+      displayName: 'Environment info'
+
+    - bash: mkdir -p "$(Build.SourcesDirectory)/reports"
+      displayName: 'Ensure reports directory'
+
+    # Caller init steps
+    - ${{ each _step in parameters.initSteps }}:
+      - ${{ _step }}
+
+    # 0) Optional: registry login
+    - ${{ if ne(parameters.containerRegistryServiceConnection, '') }}:
+      - task: Docker@2
+        displayName: 'Docker: login'
+        inputs:
+          command: login
+          containerRegistry: ${{ parameters.containerRegistryServiceConnection }}
+
+    # 1) CodeQL INIT (only if CodeQL is enabled)
+    - ${{ if eq(parameters.runCodeQL, true) }}:
+      - task: AdvancedSecurity-Codeql-Init@1
+        displayName: 'GHAS: CodeQL init'
+        inputs:
+          languages: ${{ parameters.codeqlLanguages }}
+
+    # 2) Restore (needed if either CodeQL OR Dependency Scanning is enabled)
+    - ${{ if or(eq(parameters.runDependencyCheck, true), eq(parameters.runCodeQL, true)) }}:
+      - ${{ if ne(parameters.dotnetProjectGlobs, '') }}:
+        - task: DotNetCoreCLI@2
+          displayName: 'dotnet restore (globs, lockfiles)'
+          inputs:
+            command: 'restore'
+            projects: ${{ parameters.dotnetProjectGlobs }}
+            feedsToUse: ${{ parameters.feedsToUse }}
+            ${{ if eq(parameters.feedsToUse, 'config') }}:
+              nugetConfigPath: ${{ parameters.nugetConfigPath }}
+            ${{ if or(eq(parameters.feedsToUse, 'feed'), eq(parameters.feedsToUse, 'select')) }}:
+              externalFeedCredentials: ${{ parameters.externalFeedCredentials }}
+            arguments: '--use-lock-file ${{ parameters.dotnetRestoreExtraArgs }}'
+
+      - ${{ if eq(parameters.dotnetProjectGlobs, '') }}:
+        - ${{ each path in parameters.dotnetSolutionsOrProjects }}:
+          - script: |
+              echo "Restoring (lockfile) ${{ path }}"
+              dotnet restore "${{ path }}" --use-lock-file ${{ parameters.dotnetRestoreExtraArgs }}
+            displayName: 'dotnet restore (lockfile): ${{ path }}'
+
+    # 3) GHAS Dependency Scanning (only if enabled)
+    - ${{ if eq(parameters.runDependencyCheck, true) }}:
+      - task: AdvancedSecurity-Dependency-Scanning@1
+        displayName: 'GHAS: Dependency scanning (NuGet & npm)'
+
+    # 4) Manual build for CodeQL (only if CodeQL is enabled)
+    - ${{ if eq(parameters.runCodeQL, true) }}:
+      - ${{ if ne(parameters.dotnetProjectGlobs, '') }}:
+        - task: DotNetCoreCLI@2
+          displayName: 'dotnet build (globs for CodeQL)'
+          inputs:
+            command: 'build'
+            projects: ${{ parameters.dotnetProjectGlobs }}
+            arguments: '-c ${{ parameters.dotnetBuildConfiguration }} --no-restore ${{ parameters.dotnetBuildAdditionalArgs }}'
+      - ${{ if eq(parameters.dotnetProjectGlobs, '') }}:
+        - ${{ each path in parameters.dotnetSolutionsOrProjects }}:
+          - script: |
+              echo "Building ${{ path }}"
+              dotnet build "${{ path }}" --configuration ${{ parameters.dotnetBuildConfiguration }} --no-restore ${{ parameters.dotnetBuildAdditionalArgs }}
+            displayName: 'dotnet build: ${{ path }}'
+
+    # 5) CodeQL analyze (only if CodeQL is enabled)
+    - ${{ if eq(parameters.runCodeQL, true) }}:
+      - task: AdvancedSecurity-Codeql-Analyze@1
+        displayName: 'GHAS: CodeQL analyze'
+
+    # 6) Trivy scans
+
+    # FS scan → SARIF (always runs; you can tweak with parameters)
+    - ${{ each tgt in parameters.trivyFsTargets }}:
+      - task: trivy@2
+        displayName: 'Trivy FS scan: ${{ tgt }} (${{ parameters.trivyFsScanners }})'
+        inputs:
+          type: filesystem
+          target: '${{ tgt }}'
+          scanners: '${{ parameters.trivyFsScanners }}'
+          ${{ if gt(length(parameters.trivyFsSkipDirs), 0) }}:
+            skipDirs: ${{ join(parameters.trivyFsSkipDirs, ',') }}
+          ${{ if gt(length(parameters.trivyFsSkipFiles), 0) }}:
+            skipFiles: ${{ join(parameters.trivyFsSkipFiles, ',') }}
+          format: sarif
+          output: "$(Build.SourcesDirectory)/reports/trivy-fs-${{ replace(tgt, '/', '_') }}.sarif"
+          exitCode: '0'
+          trivyCacheDir: ${{ parameters.trivyCacheDir }}
+          version: ${{ parameters.trivyVersion }}
+          ${{ if ne(parameters.trivyConfigPath, '') }}:
+            configFile: '${{ parameters.trivyConfigPath }}'
+        continueOnError: true
+
+    - ${{ if eq(parameters.runLicenseScan, true) }}:
+      - ${{ each tgt in parameters.trivyFsTargets }}:
+        - task: trivy@2
+          displayName: 'Trivy FS scan: ${{ tgt }} (license)'
+          inputs:
+            type: filesystem
+            target: '${{ tgt }}'
+            scanners: 'license'
+            ${{ if gt(length(parameters.trivyFsSkipDirs), 0) }}:
+              skipDirs: ${{ join(parameters.trivyFsSkipDirs, ',') }}
+            ${{ if gt(length(parameters.trivyFsSkipFiles), 0) }}:
+              skipFiles: ${{ join(parameters.trivyFsSkipFiles, ',') }}
+            format: json
+            output: "$(Build.SourcesDirectory)/reports/trivy-fs-license-${{ replace(tgt, '/', '_') }}.json"
+            exitCode: '0'
+            trivyCacheDir: ${{ parameters.trivyCacheDir }}
+            version: ${{ parameters.trivyVersion }}
+            ${{ if ne(parameters.trivyConfigPath, '') }}:
+              configFile: '${{ parameters.trivyConfigPath }}'
+          continueOnError: true
+
+    # Build & scan each Dockerfile (CLI)
+    - ${{ each df in parameters.dockerfilesToBuild }}:
+      - script: |
+          set -e
+          mkdir -p "$(Build.SourcesDirectory)/reports"
+          SAFE_NAME=$(basename "${{ df }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+          TAG="${SAFE_NAME}:$(Build.BuildId)"
+          echo "Building ${{ df }} → ${TAG}"
+          docker build -f "${{ df }}" ${{ parameters.dockerBuildArgs }} -t "${TAG}" "${{ parameters.dockerBuildContext }}"
+
+          echo "Scanning image ${TAG} with Trivy (CLI)"
+          CFG=""
+          if [ -n "${{ parameters.trivyConfigPath }}" ]; then
+            CFG="--config '${{ parameters.trivyConfigPath }}'"
+          fi
+
+          trivy --version
+          trivy image \
+            --cache-dir "${{ parameters.trivyCacheDir }}" \
+            --format sarif \
+            --output "$(Build.SourcesDirectory)/reports/trivy-image-${SAFE_NAME}.sarif" \
+            --ignore-unfixed \
+            --vuln-type "os,library" \
+            --severity "${{ parameters.trivySeverityFail }}" \
+            $CFG \
+            "${TAG}" || EXIT=$?
+
+          if [ "${{ parameters.trivyExitCodeVuln }}" -ne 0 ] && [ "${EXIT:-0}" -ne 0 ]; then
+            echo "Trivy found issues and trivyExitCodeVuln != 0 → failing"
+            exit 1
+          else
+            echo "Trivy completed (non-blocking)"
+          fi
+        displayName: 'Docker build+scan: ${{ df }}'
+
+    # Scan any pre-built images (task-based)
+    - ${{ each image in parameters.imagesToScan }}:
+      - task: trivy@2
+        displayName: 'Trivy image scan: ${{ image }}'
+        inputs:
+          type: image
+          target: '${{ image }}'
+          scanners: vuln
+          format: sarif
+          output: "$(Build.SourcesDirectory)/reports/trivy-image-${{ replace(image, '/', '_') }}.sarif"
+          exitCode: ${{ parameters.trivyExitCodeVuln }}
+          ignoreUnfixed: true
+          vulnType: 'os,library'
+          severity: ${{ parameters.trivySeverityFail }}
+          trivyCacheDir: ${{ parameters.trivyCacheDir }}
+          version: ${{ parameters.trivyVersion }}
+          ${{ if ne(parameters.trivyConfigPath, '') }}:
+            configFile: '${{ parameters.trivyConfigPath }}'
+        continueOnError: true
+
+    # Helm charts (misconfig) → SARIF
+    - ${{ each chart in parameters.helmChartFolders }}:
+      - task: trivy@2
+        displayName: 'Trivy config scan (Helm): ${{ chart }}'
+        inputs:
+          type: filesystem
+          target: '${{ chart }}'
+          scanners: 'misconfig'
+          format: sarif
+          output: "$(Build.SourcesDirectory)/reports/trivy-helm-${{ replace(chart, '/', '_') }}.sarif"
+          exitCode: '0'
+          trivyCacheDir: ${{ parameters.trivyCacheDir }}
+          version: ${{ parameters.trivyVersion }}
+          ${{ if ne(parameters.trivyConfigPath, '') }}:
+            configFile: '${{ parameters.trivyConfigPath }}'
+        continueOnError: true
+
+    # 7) Publish Trivy SARIF
+    - ${{ if eq(parameters.publishSarif, true) }}:
+      - task: AdvancedSecurity-Publish@1
+        displayName: 'Publish SARIF (Trivy) to Advanced Security'
+        condition: succeededOrFailed()
+        inputs:
+          SarifsInputDirectory: '$(Build.SourcesDirectory)/reports'
+          WaitForProcessing: true
+
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish raw security reports'
+      condition: succeededOrFailed()
+      inputs:
+        targetPath: '$(Build.SourcesDirectory)/reports'
+        artifact: 'security-reports'
+
+    # Caller finalization steps
+    - ${{ each _step in parameters.finalizationSteps }}:
+      - ${{ _step }}
+

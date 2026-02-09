@@ -1,0 +1,112 @@
+# =====================================================================
+# .trivy.yaml
+# Trivy configuration enforcing a strict open-source license policy
+# Only MIT and Apache-2.0 are allowed; everything else is forbidden.
+# This file is used automatically when you set:
+#   trivyConfigPath: '.trivy.yaml'
+# in your Azure Pipelines job template.
+# =====================================================================
+
+# ------------------------------------------------------------------------------
+# License classification
+# ------------------------------------------------------------------------------
+license:
+  # Permissive licenses you explicitly ALLOW
+  permissive:
+    - MIT
+    - Apache-2.0
+
+  # Everything here is NOT allowed (will be CRITICAL → pipeline fails)
+  forbidden:
+    - GPL-1.0
+    - GPL-2.0
+    - GPL-2.0-only
+    - GPL-2.0-or-later
+    - GPL-3.0
+    - GPL-3.0-only
+    - GPL-3.0-or-later
+    - LGPL-2.0
+    - LGPL-2.0-only
+    - LGPL-2.1
+    - LGPL-2.1-only
+    - LGPL-2.1-or-later
+    - LGPL-3.0
+    - LGPL-3.0-only
+    - LGPL-3.0-or-later
+    - AGPL-1.0
+    - AGPL-3.0
+    - AGPL-3.0-only
+    - AGPL-3.0-or-later
+    - MPL-1.0
+    - MPL-1.1
+    - MPL-2.0
+    - CDDL-1.0
+    - CDDL-1.1
+    - EPL-1.0
+    - EPL-2.0
+    - BSD-1-Clause
+    - BSD-2-Clause
+    - BSD-3-Clause
+    - ISC
+    - Zlib
+    - WTFPL
+    - CC-BY-1.0
+    - CC-BY-2.0
+    - CC-BY-2.5
+    - CC-BY-3.0
+    - CC-BY-4.0
+    - CC-BY-SA-1.0
+    - CC-BY-SA-2.0
+    - CC-BY-SA-2.5
+    - CC-BY-SA-3.0
+    - CC-BY-SA-4.0
+    - OSL-1.0
+    - OSL-2.0
+    - OSL-3.0
+    - Artistic-1.0
+    - Artistic-2.0
+    - JSON
+    - OpenSSL
+    - Python-2.0
+    - CPOL-1.02
+    - Ruby
+    - PostgreSQL
+    - Public-Domain
+    - Unlicense
+
+  # Optional: anything unknown → forbidden too (strict mode)
+  # uncomment to enable strict unknown handling
+  # unknown: forbidden
+
+# ------------------------------------------------------------------------------
+# General Trivy options (safe defaults for CI)
+# ------------------------------------------------------------------------------
+# Cache directory (overridden by pipeline param)
+cache-dir: .trivy-cache
+
+# Only show relevant severity (Trivy maps forbidden → CRITICAL)
+severity:
+  - CRITICAL
+  - HIGH
+  - MEDIUM
+  - LOW
+  - UNKNOWN
+
+# Exclude noisy directories (build outputs, VCS, etc.)
+skip-dirs:
+  - .git
+  - .github
+  - .azure-pipelines
+  - bin
+  - obj
+  - node_modules
+  - dist
+  - out
+  - deploy/helm
+
+# Ignore file support (optional)
+# If you want to suppress specific findings, create .trivyignore with CVE or license IDs.
+ignorefile: .trivyignore
+
+# Control the level of license detection strictness (0–1)
+license-confidence-level: 0.9

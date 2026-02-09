@@ -58,14 +58,14 @@ parameters:
     - name: 'pr-initialize'
       yaml: 'pipelines/pr-initialize.yml'
       folder: 'Fastfood'
-    - name: 'pr-securityscan'
-      yaml: 'pipelines/pr-securityscan.yml'
-      folder: 'Fastfood'
     - name: 'pr-cleanup'
       yaml: 'pipelines/pr-cleanup.yml'
       folder: 'Fastfood'
     - name: 'pr-workitemcheck'
       yaml: 'pipelines/pr-workitemcheck.yml'
+      folder: 'Fastfood'
+    - name: 'sec-nightly'
+      yaml: 'pipelines/sec-nightly.yml'
       folder: 'Fastfood'
 
 - name: repoName

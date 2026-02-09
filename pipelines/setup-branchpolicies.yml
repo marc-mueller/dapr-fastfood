@@ -191,12 +191,6 @@ parameters:
       queueOnlyOnSrcUpdate: true
       validForMins: 1440
 
-    - ciName: 'pr-securityscan'
-      displayName: 'PR Security Scan'
-      blocking: true
-      queueOnlyOnSrcUpdate: true
-      validForMins: 1440
-
 # -------------------------------------------------------------------
 # generic status checks (array of objects)
 # -------------------------------------------------------------------

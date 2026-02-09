@@ -1,0 +1,100 @@
+name: Fastfood Security Nightly $(Date:yyyyMMdd)
+
+trigger: none
+
+schedules:
+  - cron: "30 1 * * *" 
+    displayName: Nightly Security Sweep
+    branches:
+      include:
+        - main
+        - release/*
+    always: true          
+
+resources:
+  containers:
+  - container: worker
+    image: $(azureContainerRegistry)/fastfood-buildenv:$(NetCoreSdkVersion)
+    endpoint: 4taksDemoAcr
+
+variables:
+  - template: config/var-pool.yml
+  - template: config/var-commonvariables.yml
+  - template: config/var-financeservice.yml
+  - template: config/var-frontendcustomerorderstatus.yml
+  - template: config/var-frontendkitchenmonitor.yml
+  - template: config/var-frontendselfservicepos.yml
+  - template: config/var-kitchenservice.yml
+  - template: config/var-orderservice.yml
+
+jobs:
+- template: security/job-securityscan.yml
+  parameters:
+    pool:
+      ${{ if eq(variables['poolMode'], 'HostedAgent') }}:
+        vmImage: ${{ variables['poolVmImage'] }}
+      ${{ if ne(variables['poolMode'], 'HostedAgent') }}:
+        name: ${{ variables['releasePoolDevTestName'] }}
+    jobName: 'securityscan'
+    # container: worker
+    runCodeQL: false
+    runDependencyCheck: true
+    dotnetSolutionsOrProjects: ['src/services/finance/FinanceService/FinanceService.csproj', 'src/services/frontendcustomerorderstatus/FrontendCustomerOrderStatus/FrontendCustomerOrderStatus.csproj', 'src/services/frontendkitchenmonitor/FrontendKitchenMonitor/FrontendKitchenMonitor.csproj', 'src/services/frontendselfservicepos/FrontendSelfServicePos/FrontendSelfServicePos.csproj', 'src/services/kitchen/KitchenService/KitchenService.csproj', 'src/services/order/OrderService/OrderService.csproj', 'src/services/order/OrderService.Actors/OrderService.Actors.csproj']
+    imagesToScan: ['$(azureContainerRegistry)/finance:$(ImageVersionFinance)', '$(azureContainerRegistry)/frontendcustomerorderstatus:$(ImageVersionFrontendCustomerOrderStatus)', '$(azureContainerRegistry)/frontendkitchenmonitor:$(ImageVersionFrontendKitchenMonitor)', '$(azureContainerRegistry)/frontendselfservicepos:$(ImageVersionFrontendSelfServicePos)', '$(azureContainerRegistry)/kitchen:$(ImageVersionKitchen)', '$(azureContainerRegistry)/order:$(ImageVersionOrder)']
+    containerRegistryServiceConnection: $(azureContainerRegistryServiceConnection)
+    feedsToUse: 'config'
+    nugetConfigPath: 'nuget.config'
+    dotnetBuildConfiguration: 'Release'
+    trivyFsTargets: ['.']
+    trivyConfigPath: '.trivy.yaml'
+    initSteps:
+      - template: general/step-buildversion.yml
+        parameters:
+          installMonotag: false
+          updateBuildNumber: false
+          servicePaths: 'src/services/finance'
+          serviceTagPrefix: 'finance'
+          versionTaskName: 'buildVersioningFinanceService'
+      - template: general/step-buildversion.yml
+        parameters:
+          installMonotag: false
+          updateBuildNumber: false
+          servicePaths: 'src/services/frontendcustomerorderstatus'
+          serviceTagPrefix: 'frontendcustomerorderstatus'
+          versionTaskName: 'buildVersioningFrontendCustomerOrderStatus'
+      - template: general/step-buildversion.yml
+        parameters:
+          installMonotag: false
+          updateBuildNumber: false
+          servicePaths: 'src/services/frontendkitchenmonitor'
+          serviceTagPrefix: 'frontendkitchenmonitor'
+          versionTaskName: 'buildVersioningFrontendKitchenMonitor'
+      - template: general/step-buildversion.yml
+        parameters:
+          installMonotag: false
+          updateBuildNumber: false
+          servicePaths: 'src/services/frontendselfservicepos'
+          serviceTagPrefix: 'frontendselfservicepos'
+          versionTaskName: 'buildVersioningFrontendSelfServicePos'
+      - template: general/step-buildversion.yml
+        parameters:
+          installMonotag: false
+          updateBuildNumber: false
+          servicePaths: 'src/services/kitchen'
+          serviceTagPrefix: 'kitchen'
+          versionTaskName: 'buildVersioningKitchenService'
+      - template: general/step-buildversion.yml
+        parameters:
+          installMonotag: false
+          updateBuildNumber: false
+          servicePaths: 'src/services/order'
+          serviceTagPrefix: 'order'
+          versionTaskName: 'buildVersioningOrderService'
+      - script: |
+          echo "##vso[task.setvariable variable=ImageVersionFinance]$(buildVersioningFinanceService.Version)"
+          echo "##vso[task.setvariable variable=ImageVersionFrontendCustomerOrderStatus]$(buildVersioningFrontendCustomerOrderStatus.Version)"
+          echo "##vso[task.setvariable variable=ImageVersionFrontendKitchenMonitor]$(buildVersioningFrontendKitchenMonitor.Version)"
+          echo "##vso[task.setvariable variable=ImageVersionFrontendSelfServicePos]$(buildVersioningFrontendSelfServicePos.Version)"
+          echo "##vso[task.setvariable variable=ImageVersionKitchen]$(buildVersioningKitchenService.Version)"
+          echo "##vso[task.setvariable variable=ImageVersionOrder]$(buildVersioningOrderService.Version)"
+        displayName: 'Set ImageVersion variables'
