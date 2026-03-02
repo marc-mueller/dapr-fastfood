@@ -3,7 +3,8 @@ parameters:
     type: string
   - name: skipIfExists      # true | false
     type: boolean
-  - name: commentMarker     # unique substring to detect reruns
+  - name: commentMarker     # unique substring used to detect duplicate comments;
+                            # automatically appended to the content as an HTML comment
     type: string
 
 steps:
@@ -26,26 +27,45 @@ steps:
     targetType: 'inline'
     script: |
       baseUrl="${SYSTEM_COLLECTIONURI}${SYSTEM_TEAMPROJECT}"
-      threadsUrl="$baseUrl/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${SYSTEM_PULLREQUEST_PULLREQUESTID}/threads?api-version=6.0"
+      threadsUrl="$baseUrl/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${SYSTEM_PULLREQUEST_PULLREQUESTID}/threads?api-version=7.1"
+      marker='${{ parameters.commentMarker }}'
+
       # Fetch existing threads
-      threads=$(curl -s -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$threadsUrl")
+      threads=$(curl -sS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$threadsUrl")
+
+      # Detect existing comment by grepping the raw JSON for the marker value.
+      # Note: YAML boolean parameters expand as 'True'/'False' (capital first letter),
+      # so compare case-insensitively with ${skipIfExists,,} (bash lowercase expansion).
+      skipIfExists='${{ parameters.skipIfExists }}'
       exists=false
-      if [ "${{ parameters.skipIfExists }}" = "true" ]; then
-        # scan each comment for the marker
-        for content in $(echo "$threads" | jq -r '.value[].comments[].content'); do
-          if echo "$content" | grep -F "${{ parameters.commentMarker }}" >/dev/null; then
-            exists=true; break
-          fi
-        done
+      if [ "${skipIfExists,,}" = "true" ]; then
+        if echo "$threads" | grep -qF "\"$marker\""; then
+          exists=true
+        fi
+        echo "Marker '$marker' found in threads: $exists"
       fi
+
       if [ "$exists" = "true" ]; then
-        echo "⚠️ Comment with marker found—skipping."
+        echo "Comment with marker '$marker' already exists—skipping."
         exit 0
       fi
-      # Build and post new thread
+
+      # Post new thread — embed marker in thread properties so future runs can detect it.
       payload=$(jq -n --arg text "${{ parameters.commentContent }}" \
-        '{comments:[{parentCommentId:0,content:$text,commentType:1}],status:"active"}')
-      curl -s -H "Content-Type: application/json" \
+                      --arg marker "$marker" \
+        '{
+          comments: [{parentCommentId: 0, content: $text, commentType: 1}],
+          status: "active",
+          properties: {
+            "fastfood-comment-marker": {
+              "$type": "System.String",
+              "$value": $marker
+            }
+          }
+        }')
+      echo "Posting new comment with marker: $marker"
+      curl --fail-with-body -sS \
+           -H "Content-Type: application/json" \
            -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
            -d "$payload" \
            "$threadsUrl"

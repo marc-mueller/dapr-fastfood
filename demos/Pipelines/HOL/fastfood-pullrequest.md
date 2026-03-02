@@ -55,8 +55,6 @@ In the PullRequest stage, a unique namespace is created for each PR (e.g., `pr-1
       value: pr
     - name: namespace
       value: $(stagename)-$(System.PullRequest.PullRequestId)
-    - name: redisDB
-      value: $[counter(format('{0:yyyyMM}', pipeline.startTime), 3)]
   jobs:
     - template: deploy/job-deployservicetok8s.yml
       parameters:

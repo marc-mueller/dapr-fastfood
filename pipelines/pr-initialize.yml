@@ -57,13 +57,19 @@ stages:
         - name: namespace
           value: $(stagename)-$(System.PullRequest.PullRequestId)
         - name: redisDB
-          value: $[counter(format('{0:yyyyMM}', pipeline.startTime), 3)]
+          value: ''   # computed from PR ID in the first step; DBs 0-2 are reserved, uses range 3-15
         strategy:
           runOnce:
             deploy:
               steps:
                 - script: |
                     echo "##vso[build.updatebuildnumber]$(namespace)"
+                    # Derive a stable Redis DB index in the range 3-15 from the PR ID.
+                    # DBs 0-2 are reserved; 13 DBs available (3..15).
+                    # The same PR always maps to the same DB; no counter drift.
+                    redis_db=$(( ($(System.PullRequest.PullRequestId) % 13) + 3 ))
+                    echo "Assigned Redis DB: $redis_db (PR $(System.PullRequest.PullRequestId) % 13 + 3)"
+                    echo "##vso[task.setvariable variable=redisDB]$redis_db"
                   displayName: 'Update Build Number'
                 # Setup Helm authentication
                 - task: HelmDeploy@0
@@ -264,6 +270,4 @@ stages:
                       | Self-Service POS | https://selfservicepos.fastfood.$(namespace).aksdemo.4tecture.ch |
                       | Kitchen Monitor | https://kitchenmonitor.fastfood.$(namespace).aksdemo.4tecture.ch |
                       | Customer Order Status | https://customerorderstatus.fastfood.$(namespace).aksdemo.4tecture.ch |
-
-                      <!-- pr-deployment-urls-$(namespace) -->
 
