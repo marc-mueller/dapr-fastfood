@@ -58,12 +58,17 @@ steps:
       # defined (e.g. webhook-triggered pipelines), the template default renders
       # as the literal string "$(System.PullRequest.PullRequestIteration)" which
       # bash would try to execute as a command substitution. Capture it as a
-      # plain variable first and only use it when it's a valid integer.
+      # plain variable first; if it's not a valid integer, fetch the latest
+      # iteration from the API (branch policies require iterationId to be set).
       iteration_raw='${{ parameters.iteration }}'
       if [[ "$iteration_raw" =~ ^[0-9]+$ ]]; then
-        iteration_arg=(--argjson iteration "$iteration_raw")
+        iteration="$iteration_raw"
       else
-        iteration_arg=()
+        iterationsUrl="$baseUrl/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${{ parameters.pullRequestId }}/iterations?api-version=7.1"
+        iteration=$(curl -sS \
+          -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
+          "$iterationsUrl" | jq '.value | max_by(.id) | .id')
+        echo "Resolved latest PR iteration from API: $iteration"
       fi
 
       # ---------- build JSON payload ----------
@@ -76,7 +81,8 @@ steps:
           state: $state,
           description: $descr,
           targetUrl: ($url | select(. != "")),
-          context: context
+          context: context,
+          iterationId: ($iteration | tonumber)
         }
         + (if $iteration != null then {iterationId: $iteration} else {} end)
       '
@@ -87,8 +93,7 @@ steps:
         --arg  name      "${{ parameters.contextName }}" \
         --arg  url       "$targetUrl" \
         --arg  genre     "${{ parameters.genre }}" \
-        --argjson iteration "null" \
-        "${iteration_arg[@]}" \
+        --arg  iteration "$iteration" \
         "$jqFilter")
 
       # ---------- POST (create or update) ----------
