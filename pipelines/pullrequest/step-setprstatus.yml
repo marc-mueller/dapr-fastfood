@@ -53,6 +53,19 @@ steps:
         targetUrl="${SYSTEM_TEAMFOUNDATIONCOLLECTIONURI}${SYSTEM_TEAMPROJECT}/_build/results?buildId=${BUILD_BUILDID}"
       fi
 
+      # ---------- resolve iteration safely ----------
+      # When the ADO variable System.PullRequest.PullRequestIteration is not
+      # defined (e.g. webhook-triggered pipelines), the template default renders
+      # as the literal string "$(System.PullRequest.PullRequestIteration)" which
+      # bash would try to execute as a command substitution. Capture it as a
+      # plain variable first and only use it when it's a valid integer.
+      iteration_raw='${{ parameters.iteration }}'
+      if [[ "$iteration_raw" =~ ^[0-9]+$ ]]; then
+        iteration_arg=(--argjson iteration "$iteration_raw")
+      else
+        iteration_arg=()
+      fi
+
       # ---------- build JSON payload ----------
       jqFilter='
         def context:
@@ -63,18 +76,19 @@ steps:
           state: $state,
           description: $descr,
           targetUrl: ($url | select(. != "")),
-          context: context,
-          iterationId: (if $iteration != "" and $iteration != null then ($iteration|tonumber) else 1 end)
+          context: context
         }
+        + (if $iteration != null then {iterationId: $iteration} else {} end)
       '
 
       payload=$(jq -n \
-        --arg state     "${{ parameters.state }}" \
-        --arg descr     "${{ parameters.description }}" \
-        --arg name      "${{ parameters.contextName }}" \
-        --arg url       "$targetUrl" \
-        --arg genre     "${{ parameters.genre }}" \
-        --arg iteration "${{ parameters.iteration }}" \
+        --arg  state     "${{ parameters.state }}" \
+        --arg  descr     "${{ parameters.description }}" \
+        --arg  name      "${{ parameters.contextName }}" \
+        --arg  url       "$targetUrl" \
+        --arg  genre     "${{ parameters.genre }}" \
+        --argjson iteration "null" \
+        "${iteration_arg[@]}" \
         "$jqFilter")
 
       # ---------- POST (create or update) ----------
