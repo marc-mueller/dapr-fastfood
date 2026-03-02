@@ -55,7 +55,8 @@ jobs:
 
       - template: ../pullrequest/step-setprstatus.yml
         parameters:
-          state: 'succeeded'
-          description: '${{ parameters.serviceName }} PR Deployment Verified'
+          state: '$(SystemTestsState)'
+          description: '${{ parameters.serviceName }} PR Deployment Verification: $(SystemTestsState)'
           contextName: 'pr-deployment-${{ parameters.serviceName }}'
           genre: 'pr-env'
+          condition: always()

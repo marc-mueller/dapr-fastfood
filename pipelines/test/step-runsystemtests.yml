@@ -115,7 +115,15 @@ steps:
       # Video output directory
       VIDEO_OUTPUT_DIR: '$(Agent.TempDirectory)/Videos'
       PLAYWRIGHT_BROWSERS_PATH: '$(Agent.TempDirectory)/ms-playwright'
-    continueOnError: true
+
+  # Capture test outcome for downstream steps (e.g. PR status)
+  - bash: echo "##vso[task.setvariable variable=SystemTestsState]succeeded"
+    displayName: 'Record test outcome (passed)'
+    condition: succeeded()
+
+  - bash: echo "##vso[task.setvariable variable=SystemTestsState]failed"
+    displayName: 'Record test outcome (failed)'
+    condition: failed()
 
   # Publish test results
   # - task: PublishTestResults@2

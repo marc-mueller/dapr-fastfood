@@ -250,3 +250,20 @@ stages:
                     installHelm: false
                     installKubectl: false
 
+                - template: pullrequest/step-addprcomment.yml
+                  parameters:
+                    commentMarker: 'pr-deployment-urls-$(namespace)'
+                    skipIfExists: true
+                    commentContent: |
+                      ## 🚀 Verify the deployment
+
+                      The PR environment has been deployed. Use the links below to verify:
+
+                      | Frontend | URL |
+                      |----------|-----|
+                      | Self-Service POS | https://selfservicepos.fastfood.$(namespace).aksdemo.4tecture.ch |
+                      | Kitchen Monitor | https://kitchenmonitor.fastfood.$(namespace).aksdemo.4tecture.ch |
+                      | Customer Order Status | https://customerorderstatus.fastfood.$(namespace).aksdemo.4tecture.ch |
+
+                      <!-- pr-deployment-urls-$(namespace) -->
+
